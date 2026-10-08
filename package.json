@@ -1,0 +1,12 @@
+{
+  "name": "anthropocene-spaceapps-2026",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "NASA Space Apps 2026 · Field Shift: a game where the climate raids your farm and NASA data is your scout.",
+  "scripts": {
+    "dev": "python3 -m http.server 5173",
+    "test": "node --test"
+  },
+  "license": "MIT"
+}

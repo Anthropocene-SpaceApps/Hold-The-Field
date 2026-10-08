@@ -1,0 +1,17 @@
+{
+  "haor": {
+    "name": "Sunamganj haor",
+    "farm": { "lat": 25.07, "lon": 91.40 },
+    "upstream": { "lat": 25.27, "lon": 91.73, "name": "Cherrapunji / Sohra, Meghalaya" }
+  },
+  "coast": {
+    "name": "Satkhira coast",
+    "farm": { "lat": 22.72, "lon": 89.07 },
+    "upstream": { "lat": 22.72, "lon": 89.07, "name": "same point (salinity is driven locally)" }
+  },
+  "barind": {
+    "name": "Barind tract",
+    "farm": { "lat": 24.60, "lon": 88.50 },
+    "upstream": { "lat": 24.60, "lon": 88.50, "name": "same point (drought is driven locally)" }
+  }
+}

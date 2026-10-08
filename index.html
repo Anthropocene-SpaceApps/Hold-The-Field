@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Hold the Field · Team Anthropocene</title>
+  <meta name="description" content="A strategy game where the climate raids your farm and NASA satellite data is your scout. NASA Space Apps Challenge 2026 · Field Shift." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="title">Hold the Field</span>
+      <span class="sub">Sunamganj haor · boro season 2017</span>
+    </div>
+    <div class="date" id="date">1 Jan 2017</div>
+    <div class="controls">
+      <button id="play" class="btn primary" aria-label="Play">▶ Play</button>
+      <button id="speed" class="btn" aria-label="Speed">1×</button>
+      <button id="reset" class="btn" aria-label="Restart">↺</button>
+      <label class="mode">
+        <select id="mode" aria-label="Mode">
+          <option value="scout">With scout (you play)</option>
+          <option value="rahim">Rahim's way (no scout)</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="farm-wrap">
+      <canvas id="farm" aria-label="Isometric view of the farm"></canvas>
+      <div class="sample-badge" id="sampleBadge" hidden>SAMPLE DATA, not real. Run the data pipeline.</div>
+    </section>
+
+    <aside class="scout" aria-label="Satellite scout">
+      <div class="scout-head">
+        <span class="scout-title">🛰 Satellite Scout</span>
+        <span class="chip" id="status">Calm</span>
+      </div>
+      <div class="spark-label">Rain upstream (Meghalaya hills), last 14 days</div>
+      <canvas id="spark" height="90"></canvas>
+      <dl class="readings">
+        <div><dt>Rain upstream</dt><dd id="rUp">0 mm</dd></div>
+        <div><dt>Rain on farm</dt><dd id="rFarm">0 mm</dd></div>
+        <div><dt>Max temp</dt><dd id="tmax">0 °C</dd></div>
+        <div><dt>Soil wetness</dt><dd id="soil">0</dd></div>
+      </dl>
+      <div class="level">
+        <div class="level-label">Water vs bund</div>
+        <div class="level-bar"><div class="level-fill" id="levelFill"></div><div class="level-bund" id="levelBund"></div></div>
+      </div>
+      <ul class="log" id="log"></ul>
+      <button class="link" id="aboutBtn">Data &amp; model ⓘ</button>
+      <div class="source" id="source">NASA POWER</div>
+    </aside>
+  </main>
+
+  <footer class="actions">
+    <label class="variety">Rice
+      <select id="variety">
+        <option value="long">Long-duration</option>
+        <option value="short">Short-duration</option>
+      </select>
+    </label>
+    <div class="stat"><span>Maturity</span><div class="bar"><div id="matFill"></div></div><b id="matPct">0%</b></div>
+    <div class="stat coins">🪙 <b id="coins">100</b></div>
+    <button class="btn" id="bundBtn">Raise bund <small>(40)</small></button>
+    <button class="btn harvest" id="harvestBtn">Harvest now</button>
+  </footer>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <dialog id="hint" class="card">
+    <h2>Hold the field</h2>
+    <ol>
+      <li><b>Press Play.</b> Each day uses real NASA satellite readings for this farm.</li>
+      <li><b>Watch the Scout.</b> Heavy rain in the hills upstream means a flash flood is coming.</li>
+      <li><b>Act in time.</b> Raise the bund or harvest early. Save Rahim's rice.</li>
+    </ol>
+    <button class="btn primary" id="hintOk">Let's go</button>
+  </dialog>
+
+  <dialog id="about" class="card">
+    <h2>Data &amp; model</h2>
+    <p id="aboutData"></p>
+    <p><b>This is a simplified model,</b> calibrated to reproduce one real flood. It is a learning game, not a forecast.</p>
+    <ul>
+      <li>Water level is a simple bucket: upstream rain (arriving after a short delay) and farm rain fill it; drainage empties it.</li>
+      <li>The flood starts when water rises above the bund. The crop dies after a few days fully under water.</li>
+      <li>The Scout warns using the 3-day total of upstream rain.</li>
+      <li>Rice matures linearly from transplanting. You can harvest from 80% maturity; yield equals maturity.</li>
+    </ul>
+    <p>Full details: <code>docs/DATA.md</code> in our repository.</p>
+    <button class="btn primary" id="aboutOk">Close</button>
+  </dialog>
+
+  <dialog id="end" class="card">
+    <h2 id="endTitle">Season over</h2>
+    <div class="compare">
+      <div><span class="k" id="endYouLabel">You</span><b id="endYou">0%</b><span>of the harvest saved</span></div>
+      <div><span class="k" id="endOtherLabel">Rahim's way</span><b id="endOther">0%</b><span>of the harvest saved</span></div>
+    </div>
+    <p class="endline" id="endLine"></p>
+    <button class="btn primary" id="endAgain">Play again</button>
+  </dialog>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
