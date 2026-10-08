@@ -33,6 +33,8 @@ All numbers are in `src/sim/config.js`.
 
 `a`, `b`, `drain`, `baseLoss`, `lagDays` and the bund heights are tuned so that the **real 2017 rainfall floods the field near the documented flood date** (source: _add from research sheet_). This is a learning game calibrated to one real event, not a forecast model.
 
+To calibrate: run `node scripts/calibrate.mjs data/haor-2017.json --target <documented flood date>`. It prints how the current config plays and the `a` / `drain` pair that floods an unprotected crop on that date. Paste the winner into `src/sim/config.js`. The test `the real season file keeps the game story intact` only runs once `data/haor-2017.json` is real (`"sample": false`).
+
 ### Known simplifications
 
 - One bucket for the whole field; no river routing, topography or embankment failure.

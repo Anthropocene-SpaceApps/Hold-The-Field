@@ -39,6 +39,7 @@ No install needed.
 python3 -m http.server 5173     # then open http://localhost:5173
 node --test                     # run the simulation tests
 python3 data-pipeline/fetch_power.py --region haor --start 20170101 --end 20170430 --out data/haor-2017.json
+node scripts/calibrate.mjs data/haor-2017.json --target YYYY-MM-DD   # fit the water model to the documented flood date
 ```
 
 ## Team Anthropocene
