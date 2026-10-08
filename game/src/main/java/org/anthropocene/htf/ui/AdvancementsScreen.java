@@ -2,29 +2,32 @@ package org.anthropocene.htf.ui;
 
 import org.anthropocene.htf.game.Advancements;
 import org.anthropocene.htf.gfx.Renderer2D;
-import org.anthropocene.htf.gfx.Tile;
+
+import static org.anthropocene.htf.ui.Theme.*;
 
 public final class AdvancementsScreen extends Screen {
     @Override
     protected void init() {
-        button("Done", w / 2 - 100, h - 30, 200, this::onEscape);
+        layoutCard(700, 640);
+        button("Done", cardX + 32, cardY + cardH - 66, cardW - 64, this::onEscape).primary();
     }
 
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
+        drawCard(r);
         Advancements adv = game.advancements();
-        title(r, "Advancements", 10);
-        r.textCentered(adv.count() + " / " + Advancements.ALL.size() + " completed", w / 2f, 27, 8, 0xFFB0B0B0, true, false);
-        int rw = Math.min(330, w - 20), x = w / 2 - rw / 2, y = 42, rowH = Math.min(26, (h - 84) / Advancements.ALL.size());
+        heading(r, "Advancements");
+        r.textRight(adv.count() + " of " + Advancements.ALL.size() + " earned", cardX + cardW - 32, cardY + 34, 13, MUTED, false);
+        int x = cardX + 32, rw = cardW - 64, y = cardY + 92, rowH = 58;
         for (Advancements.Adv a : Advancements.ALL) {
             boolean got = adv.has(a.id());
-            r.rect(x, y, rw, rowH - 2, got ? 0xFF000000 : 0xB0000000);
-            r.border(x, y, rw, rowH - 2, 1, got ? 0xFFE0C040 : 0xFF444444);
-            r.rect(x + 3, y + 3, rowH - 8, rowH - 8, got ? 0xFF6A5A1A : 0xFF303030);
-            r.tile(Tile.ICON_WHEAT, x + 4, y + 4, rowH - 10, rowH - 10, got ? 0xFFFFFFFF : 0x55FFFFFF);
-            r.text(a.title(), x + rowH + 2, y + 2, 8.5f, got ? 0xFFFFFF77 : 0xFF909090, true, true);
-            r.text(a.description(), x + rowH + 2, y + 12, 7.5f, got ? 0xFFDDDDDD : 0xFF707070, true, false);
+            r.roundRect(x, y, rw, rowH - 8, 12, got ? 0x24FFC857 : 0x12FFFFFF);
+            r.roundRing(x, y, rw, rowH - 8, 12, 1f, got ? 0x88FFC857 : BORDER);
+            r.circle(x + 28, y + (rowH - 8) / 2f, 17, got ? 0xFFFFC857 : 0x22FFFFFF);
+            Icons.draw(r, got ? Icons.Id.CHECK : Icons.Id.WHEAT, x + 28, y + (rowH - 8) / 2f, 18, got ? 0xFF3A2A00 : FAINT);
+            r.text(a.title(), x + 58, y + 7, 15, got ? TEXT : MUTED, false, true);
+            r.text(a.description(), x + 58, y + 28, 12, got ? MUTED : FAINT);
             y += rowH;
         }
         for (Widget wd : widgets) wd.render(r, mx, my);

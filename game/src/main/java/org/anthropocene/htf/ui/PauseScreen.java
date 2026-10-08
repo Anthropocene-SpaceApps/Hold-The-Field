@@ -6,16 +6,16 @@ import org.anthropocene.htf.gfx.Renderer2D;
 public final class PauseScreen extends Screen {
     @Override
     protected void init() {
-        int cx = w / 2 - 102, y = Math.max(h / 4 + 8, 56);
-        button("Back to Game", cx, y, 204, () -> game.setScreen(null));
-        button("Scout Dashboard", cx, y + 28, 204, () -> open(new DashboardScreen(game.session())));
-        button("Data & Model", cx, y + 52, 100, () -> open(new AboutScreen()));
-        button("Advancements", cx + 104, y + 52, 100, () -> open(new AdvancementsScreen()));
-        button("Options...", cx, y + 76, 204, () -> open(new OptionsScreen()));
-        button("Save and Quit to Title", cx, y + 104, 204, game::quitToTitle);
+        layoutCard(420, 480);
+        int x = cardX + 32, rw = cardW - 64, y = cardY + 118;
+        button("Resume", x, y, rw, () -> game.setScreen(null)).primary();
+        button("Scout dashboard", x, y + 54, rw, () -> open(new DashboardScreen(game.session())));
+        button("Data and model", x, y + 102, rw, () -> open(new AboutScreen()));
+        button("Advancements", x, y + 150, rw, () -> open(new AdvancementsScreen()));
+        button("Options", x, y + 198, rw, () -> open(new OptionsScreen()));
+        Widget.Button quit = button("Save and quit to title", x, y + 262, rw, game::quitToTitle);
+        quit.danger = true;
     }
-
-    private void open(Screen s) { s.parent = this; game.setScreen(s); }
 
     @Override protected void onEscape() { game.setScreen(null); }
 
@@ -25,10 +25,10 @@ public final class PauseScreen extends Screen {
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
+        drawCard(r);
+        heading(r, "Paused");
         Session s = game.session();
-        int top = Math.max(h / 4 + 8, 56);
-        title(r, "Game Menu", top - 26);
-        if (s != null) r.textCentered(s.name + "  |  " + org.anthropocene.htf.ui.Hud.date(s.state.date), w / 2f, top - 12, 8, 0xFFB0B0B0, true, false);
+        if (s != null) r.text(s.name + "   |   " + Hud.date(s.state.date), cardX + 32, cardY + 78, 13, Theme.MUTED);
         for (Widget wd : widgets) wd.render(r, mx, my);
     }
 }

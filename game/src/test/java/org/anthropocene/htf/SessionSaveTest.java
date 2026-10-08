@@ -61,4 +61,9 @@ class SessionSaveTest {
         for (int i = 0; i < 10; i++) s.speedDown();
         assertEquals(0, s.speedIdx);
     }
+
+    @Test void launcherPassesAnAbsoluteClasspathToTheGameProcess() {
+        String cp = org.anthropocene.htf.launcher.GameProcess.absoluteClasspath("hold-the-field.jar" + java.io.File.pathSeparator + "lib/x.jar");
+        for (String e : cp.split(java.io.File.pathSeparator)) assertTrue(new java.io.File(e).isAbsolute(), e);
+    }
 }

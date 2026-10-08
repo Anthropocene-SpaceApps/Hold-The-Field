@@ -5,15 +5,18 @@ import java.util.Map;
 
 /** Every tunable number in the simulation. Mirrors the web prototype's src/sim/config.js. */
 public final class Config {
-    public record Variety(String label, int fieldDays) {}
+    /** potential = share of the full yield this variety can reach (game parameter, not agronomic advice). */
+    public record Variety(String label, int fieldDays, double potential, String note) {}
 
     public static final Config DEFAULT = new Config(0.0011, 0.8);
 
     // --- Crop ---
-    public final LocalDate transplantDate = LocalDate.parse("2017-01-05");
+    public final LocalDate defaultTransplant = LocalDate.parse("2017-01-05");
     public final Map<String, Variety> varieties = Map.of(
-            "long", new Variety("Long-duration boro", 115),
-            "short", new Variety("Short-duration boro", 90));
+            "long", new Variety("Long-duration boro", 115, 1.00, "Highest yield, ripens late"),
+            "short", new Variety("Short-duration boro", 90, 0.85, "Lower yield, ripens early"));
+    /** Transplanting choices offered at the start of a season. */
+    public final String[][] transplantOptions = {{"2016-12-20", "Early (20 Dec)"}, {"2017-01-05", "Usual (5 Jan)"}, {"2017-01-25", "Late (25 Jan)"}};
     public final double minHarvestMaturity = 0.8;
     public final int daysUnderwaterToKill = 4;
 

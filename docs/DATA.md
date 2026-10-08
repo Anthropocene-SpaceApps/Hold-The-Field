@@ -17,7 +17,7 @@ Fetched by `data-pipeline/fetch_power.py` and stored in `data/*.json`. The game 
 | Farm, Sunamganj haor | 25.07 | 91.40 | The field in the story |
 | Upstream, Cherrapunji / Sohra | 25.27 | 91.73 | Haor flash floods are driven by heavy rain in the Meghalaya hills |
 
-Season: 1 Jan – 30 Apr 2017 (boro rice). Missing values (POWER fill value −999) are replaced and counted in `missing_values_filled`.
+Season: 1 Dec 2016 – 30 Apr 2017 (boro rice; the start leaves room to choose the transplanting date). Missing values (POWER fill value −999) are replaced and counted in `missing_values_filled`.
 
 ## The model (simplified on purpose)
 

@@ -7,7 +7,9 @@ import org.anthropocene.htf.sim.Season;
 import java.util.ArrayList;
 import java.util.List;
 
-/** "Data & Model": where the numbers come from, how the simulation works, and what it leaves out. */
+import static org.anthropocene.htf.ui.Theme.*;
+
+/** "Data and Model": where the numbers come from, how the simulation works, and what it leaves out. */
 public final class AboutScreen extends Screen {
     private record Block(String head, String body) {}
     private final List<Block> blocks = new ArrayList<>();
@@ -16,47 +18,57 @@ public final class AboutScreen extends Screen {
 
     @Override
     protected void init() {
+        layoutCard(900, 660);
         blocks.clear();
         Season s = game.hasSession() ? game.session().season : game.titleSeason();
         Config c = Config.DEFAULT;
-        String lat = s == null ? "" : String.format("farm %.2f N %.2f E, upstream %.2f N %.2f E", s.points.farm().lat(), s.points.farm().lon(), s.points.upstream().lat(), s.points.upstream().lon());
+        String pts = s == null ? "" : String.format("farm %.2f N %.2f E, upstream %.2f N %.2f E", s.points.farm().lat(), s.points.farm().lon(), s.points.upstream().lat(), s.points.upstream().lon());
+        blocks.add(new Block("What this game is for", "Farmers in flood-prone regions are already adapting: planting earlier, choosing shorter-duration varieties, raising embankments, watching the sky. "
+                + "This game lets you try those decisions on a real season, with the NASA data that a farmer or an extension officer could actually use, and see what would have worked."));
         blocks.add(new Block("Where the data comes from", s == null ? "" :
-                "NASA POWER Daily API (community AG). Daily precipitation (PRECTOTCORR), maximum temperature (T2M_MAX) and root-zone soil wetness (GWETROOT), "
-                        + s.days.get(0).date() + " to " + s.days.get(s.length() - 1).date() + ". Points: " + lat + " (Sunamganj haor and the Meghalaya hills above it)."
-                        + (s.sample ? "\n\nTHIS COPY IS SAMPLE DATA, NOT REAL. Open the Launcher and press 'Update NASA data' to download the real season." : "")));
+                "NASA POWER Daily API (community AG): precipitation (PRECTOTCORR), maximum temperature (T2M_MAX) and root-zone soil wetness (GWETROOT), "
+                        + s.days.get(0).date() + " to " + s.days.get(s.length() - 1).date() + ". Points: " + pts + " (Sunamganj haor and the Meghalaya hills above it)."
+                        + (s.sample ? "\n\nTHIS COPY IS SAMPLE DATA, NOT REAL. Open the launcher and press 'Update NASA data' to download the real season." : "")));
         blocks.add(new Block("How the model works",
-                "Water level is a simple bucket, in metres above the field: upstream rain (arriving " + c.lagDays + " days later) and rain on the farm fill it, drainage empties it.\n"
-                        + "A flash flood starts when the water rises above the bund (" + c.bundStart + " m, +" + c.bundRaise + " m per raise, up to " + c.maxBundRaises + " raises). The crop dies after " + c.daysUnderwaterToKill + " days under water.\n"
-                        + "The Satellite Scout warns from the 3-day total of upstream rain: Watch at " + (int) c.watchMm + " mm, Flood Warning at " + (int) c.warningMm + " mm.\n"
-                        + "Rice matures linearly from transplanting on " + c.transplantDate + ". You may harvest from " + (int) (c.minHarvestMaturity * 100) + "% maturity; the yield equals maturity at harvest."));
+                "Water level is a simple bucket, in metres above the field: rain in the hills upstream (arriving " + c.lagDays + " days later) and rain on the farm fill it, drainage empties it.\n"
+                        + "A flash flood starts when the water rises above the embankment (" + c.bundStart + " m, +" + c.bundRaise + " m per raise, up to " + c.maxBundRaises + " raises). The crop dies after " + c.daysUnderwaterToKill + " days under water.\n"
+                        + "The satellite scout warns from the 3-day total of upstream rain: Watch at " + (int) c.watchMm + " mm, Flood Warning at " + (int) c.warningMm + " mm.\n"
+                        + "Rice matures linearly after transplanting (" + c.varieties.get("short").fieldDays() + " days for short-duration, " + c.varieties.get("long").fieldDays() + " for long-duration). You may harvest from "
+                        + (int) (c.minHarvestMaturity * 100) + "% maturity. Yield = maturity x the variety's potential (" + (int) (c.varieties.get("short").potential() * 100) + "% for short, " + (int) (c.varieties.get("long").potential() * 100) + "% for long; game parameters, not agronomic advice)."));
         blocks.add(new Block("What it leaves out, on purpose",
-                "One bucket for the whole field. No river routing, terrain or embankment failure. Rain from a single upstream point stands in for the whole catchment. Crop growth is linear: no fertiliser, pests or heat stress. This is a learning game calibrated to one real event, not a forecast."));
+                "One bucket for the whole field. No river routing, terrain or embankment failure. Rain from a single upstream point stands in for the whole catchment. Crop growth is linear: no fertiliser, pests or heat stress. "
+                        + "It is a learning game calibrated to one real event, not a forecast."));
         blocks.add(new Block("How to play",
-                "Walk with WASD, jump with Space, double-tap Space to fly. Press P to start time. Hotbar: 1 Mud Bricks (aim at the bund and click), 2 Sickle (aim at the rice and click), 3 Spyglass (satellite dashboard). E opens the dashboard. F3 shows debug data, F2 takes a screenshot."));
+                "Walk with WASD, jump with Space, double-tap Space to fly. Press P to start time. 1: raise the embankment (aim at it and click). 2: harvest (aim at the rice and click). "
+                        + "3 or M: NASA satellite view. 4 or E: scout dashboard. Right-click Rahim to talk. F3 shows debug data, F2 takes a screenshot."));
         blocks.add(new Block("Team Anthropocene",
-                "Alif, Safwat, Yasin, Zawad, Yaminur and Marwa. NASA Space Apps Challenge 2026, Chattogram, Bangladesh. Challenge: Field Shift. Data: NASA POWER. Fonts: DejaVu Sans Mono. Every texture and sound in this game is generated by code."));
-        button("Done", w / 2 - 100, h - 28, 200, this::onEscape);
+                "Alif, Safwat, Yasin, Zawad, Yaminur and Marwa. NASA Space Apps Challenge 2026, Chattogram, Bangladesh. Challenge: Field Shift. Data: NASA POWER. Font: DejaVu Sans. Every texture, model and sound in this game is generated by code."));
+        button("Done", cardX + 32, cardY + cardH - 66, cardW - 64, this::onEscape).primary();
     }
 
     @Override
-    public void scroll(int mx, int my, double dy) { scroll = Math.max(0, Math.min(Math.max(0, contentH - (h - 66)), scroll - dy * 18)); }
+    public void scroll(int mx, int my, double dy) { scroll = Math.max(0, Math.min(Math.max(0, contentH - (cardH - 170)), scroll - dy * 30)); }
 
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
-        title(r, "Data & Model", 8);
-        int pw = Math.min(420, w - 24), px = w / 2 - pw / 2, top = 28, bottom = h - 36;
-        r.rect(px - 4, top, pw + 8, bottom - top, 0x90000000);
-        r.pushClip(px - 4, top, pw + 8, bottom - top);
+        drawCard(r);
+        heading(r, "Data and model");
+        int pw = cardW - 64, px = cardX + 32, top = cardY + 84, bottom = cardY + cardH - 82;
+        r.pushClip(px - 8, top, pw + 16, bottom - top);
         float y = top + 4 - (float) scroll;
         for (Block b : blocks) {
-            r.text(b.head(), px, y, 9.5f, 0xFFFFD27A, true, true);
-            y += 13;
-            for (String line : r.wrap(b.body(), pw, 8)) { r.text(line, px, y, 8, 0xFFE8E8E8, true, false); y += 10; }
-            y += 8;
+            r.text(b.head(), px, y, 16, CROP, false, true);
+            y += 26;
+            for (String line : r.wrap(b.body(), pw, 13)) { r.text(line, px, y, 13, 0xFFD3DEEC); y += 19; }
+            y += 16;
         }
         contentH = y + (float) scroll - top;
         r.popClip();
+        if (contentH > bottom - top) {
+            float th = Math.max(30, (bottom - top) * (bottom - top) / contentH);
+            r.roundRect(cardX + cardW - 18, top + (float) (scroll / (contentH - (bottom - top))) * (bottom - top - th), 4, th, 2, 0x66FFFFFF);
+        }
         for (Widget wd : widgets) wd.render(r, mx, my);
     }
 }

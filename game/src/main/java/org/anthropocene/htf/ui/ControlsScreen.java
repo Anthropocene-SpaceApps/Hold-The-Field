@@ -6,12 +6,13 @@ import org.anthropocene.htf.gfx.Renderer2D;
 public final class ControlsScreen extends Screen {
     @Override
     protected void init() {
+        layoutCard(560, 430);
         Settings s = game.settings();
-        int cx = w / 2 - 100;
-        add(new Widget.Slider("Mouse Sensitivity", s.mouseSensitivity, v -> v < 0.01 ? "*yawn*" : v > 0.99 ? "HYPERSPEED!!!" : Math.round(v * 200) + "%", v -> s.mouseSensitivity = v)).bounds(cx, 40, 200, 20);
-        add(Widget.toggle("Invert Mouse", s.invertY, v -> s.invertY = v)).bounds(cx, 64, 200, 20);
-        button("Key Binds...", cx, 98, 200, () -> { Screen k = new KeyBindsScreen(); k.parent = this; game.setScreen(k); });
-        button("Done", cx, h - 32, 200, this::onEscape);
+        int x = cardX + 32, rw = cardW - 64, y = cardY + 92;
+        add(new Widget.Slider("Mouse sensitivity", s.mouseSensitivity, v -> Math.round(v * 200) + "%", v -> s.mouseSensitivity = v)).bounds(x, y, rw, 44);
+        add(Widget.toggle("Invert vertical look", s.invertY, v -> s.invertY = v)).bounds(x, y + 52, rw, 44);
+        button("Key binds", x, y + 104, rw, () -> open(new KeyBindsScreen()));
+        button("Done", x, cardY + cardH - 66, rw, this::onEscape).primary();
     }
 
     @Override protected void onEscape() { game.settings().save(); game.setScreen(parent); }
@@ -19,8 +20,9 @@ public final class ControlsScreen extends Screen {
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
-        title(r, "Controls", 14);
+        drawCard(r);
+        heading(r, "Controls");
         for (Widget wd : widgets) wd.render(r, mx, my);
-        r.textCentered("Hotbar: 1-9 or mouse wheel   |   Pause: Esc   |   Double-tap Jump to fly", w / 2f, 130, 7.5f, 0xFFA0A0A0, true, false);
+        r.text("Hotbar: 1-9 or mouse wheel   |   Esc: menu   |   Double-tap Jump: fly", cardX + 32, cardY + 304, 12, Theme.FAINT);
     }
 }

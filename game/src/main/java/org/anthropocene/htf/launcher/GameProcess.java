@@ -26,9 +26,16 @@ public final class GameProcess {
         String home = System.getProperty("htf.home");
         if (home != null) cmd.add("-Dhtf.home=" + home);
         cmd.add("-cp");
-        cmd.add(System.getProperty("java.class.path"));
+        cmd.add(absoluteClasspath(System.getProperty("java.class.path")));
         cmd.add(Main.class.getName());
         return cmd;
+    }
+
+    /** The game runs in another working directory, so a relative classpath (java -jar game.jar) must be made absolute. */
+    public static String absoluteClasspath(String cp) {
+        List<String> out = new ArrayList<>();
+        for (String entry : cp.split(File.pathSeparator)) if (!entry.isBlank()) out.add(new File(entry).getAbsolutePath());
+        return String.join(File.pathSeparator, out);
     }
 
     /** Launch; output lines go to {@code out}; {@code onExit} receives the exit code. */

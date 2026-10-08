@@ -1,8 +1,8 @@
 {
  "region": "sunamganj-haor",
- "season": "boro-2017",
+ "season": "20161201-20170430",
  "sample": true,
- "note": "SYNTHETIC PLACEHOLDER. Not real data. Replace by running data-pipeline/fetch_power.py.",
+ "note": "SYNTHETIC PLACEHOLDER. Not real data. Replace by running the launcher's Update NASA data or data-pipeline/fetch_power.py.",
  "source": "NASA POWER Daily API, community AG (placeholder until fetched)",
  "points": {
   "farm": {
@@ -21,6 +21,223 @@
   "soil": "0-1 (GWETROOT)"
  },
  "days": [
+  {
+   "date": "2016-12-01",
+   "rainUp": 0.7,
+   "rainFarm": 0.0,
+   "tmax": 27.3,
+   "soil": 0.535
+  },
+  {
+   "date": "2016-12-02",
+   "rainUp": 1.0,
+   "rainFarm": 0.0,
+   "tmax": 27.2,
+   "soil": 0.503
+  },
+  {
+   "date": "2016-12-03",
+   "rainUp": 0.1,
+   "rainFarm": 0.0,
+   "tmax": 26.2,
+   "soil": 0.519
+  },
+  {
+   "date": "2016-12-04",
+   "rainUp": 0.2,
+   "rainFarm": 0.0,
+   "tmax": 25.6,
+   "soil": 0.508
+  },
+  {
+   "date": "2016-12-05",
+   "rainUp": 0.7,
+   "rainFarm": 0.0,
+   "tmax": 26.4,
+   "soil": 0.503
+  },
+  {
+   "date": "2016-12-06",
+   "rainUp": 0.4,
+   "rainFarm": 0.0,
+   "tmax": 26.1,
+   "soil": 0.534
+  },
+  {
+   "date": "2016-12-07",
+   "rainUp": 0.1,
+   "rainFarm": 0.0,
+   "tmax": 25.9,
+   "soil": 0.508
+  },
+  {
+   "date": "2016-12-08",
+   "rainUp": 0.9,
+   "rainFarm": 0.0,
+   "tmax": 24.8,
+   "soil": 0.531
+  },
+  {
+   "date": "2016-12-09",
+   "rainUp": 0.8,
+   "rainFarm": 0.0,
+   "tmax": 24.6,
+   "soil": 0.523
+  },
+  {
+   "date": "2016-12-10",
+   "rainUp": 0.5,
+   "rainFarm": 0.0,
+   "tmax": 25.8,
+   "soil": 0.514
+  },
+  {
+   "date": "2016-12-11",
+   "rainUp": 0.8,
+   "rainFarm": 0.0,
+   "tmax": 24.8,
+   "soil": 0.528
+  },
+  {
+   "date": "2016-12-12",
+   "rainUp": 1.2,
+   "rainFarm": 0.0,
+   "tmax": 24.5,
+   "soil": 0.512
+  },
+  {
+   "date": "2016-12-13",
+   "rainUp": 1.1,
+   "rainFarm": 0.0,
+   "tmax": 25.2,
+   "soil": 0.523
+  },
+  {
+   "date": "2016-12-14",
+   "rainUp": 1.2,
+   "rainFarm": 0.0,
+   "tmax": 25.3,
+   "soil": 0.522
+  },
+  {
+   "date": "2016-12-15",
+   "rainUp": 0.8,
+   "rainFarm": 0.0,
+   "tmax": 24.9,
+   "soil": 0.502
+  },
+  {
+   "date": "2016-12-16",
+   "rainUp": 0.9,
+   "rainFarm": 0.0,
+   "tmax": 24.3,
+   "soil": 0.523
+  },
+  {
+   "date": "2016-12-17",
+   "rainUp": 1.3,
+   "rainFarm": 0.0,
+   "tmax": 24.3,
+   "soil": 0.525
+  },
+  {
+   "date": "2016-12-18",
+   "rainUp": 1.3,
+   "rainFarm": 0.0,
+   "tmax": 24.7,
+   "soil": 0.533
+  },
+  {
+   "date": "2016-12-19",
+   "rainUp": 0.6,
+   "rainFarm": 0.0,
+   "tmax": 23.6,
+   "soil": 0.525
+  },
+  {
+   "date": "2016-12-20",
+   "rainUp": 0.9,
+   "rainFarm": 0.0,
+   "tmax": 25.2,
+   "soil": 0.538
+  },
+  {
+   "date": "2016-12-21",
+   "rainUp": 0.1,
+   "rainFarm": 0.0,
+   "tmax": 24.4,
+   "soil": 0.52
+  },
+  {
+   "date": "2016-12-22",
+   "rainUp": 0.4,
+   "rainFarm": 0.0,
+   "tmax": 23.9,
+   "soil": 0.538
+  },
+  {
+   "date": "2016-12-23",
+   "rainUp": 1.4,
+   "rainFarm": 0.0,
+   "tmax": 24.5,
+   "soil": 0.528
+  },
+  {
+   "date": "2016-12-24",
+   "rainUp": 0.3,
+   "rainFarm": 0.0,
+   "tmax": 23.9,
+   "soil": 0.531
+  },
+  {
+   "date": "2016-12-25",
+   "rainUp": 0.9,
+   "rainFarm": 0.0,
+   "tmax": 22.6,
+   "soil": 0.517
+  },
+  {
+   "date": "2016-12-26",
+   "rainUp": 0.7,
+   "rainFarm": 0.0,
+   "tmax": 24.0,
+   "soil": 0.519
+  },
+  {
+   "date": "2016-12-27",
+   "rainUp": 1.3,
+   "rainFarm": 0.0,
+   "tmax": 23.9,
+   "soil": 0.507
+  },
+  {
+   "date": "2016-12-28",
+   "rainUp": 1.1,
+   "rainFarm": 0.0,
+   "tmax": 23.1,
+   "soil": 0.51
+  },
+  {
+   "date": "2016-12-29",
+   "rainUp": 13.5,
+   "rainFarm": 4.7,
+   "tmax": 23.1,
+   "soil": 0.504
+  },
+  {
+   "date": "2016-12-30",
+   "rainUp": 1.1,
+   "rainFarm": 0.0,
+   "tmax": 23.8,
+   "soil": 0.529
+  },
+  {
+   "date": "2016-12-31",
+   "rainUp": 18.4,
+   "rainFarm": 1.4,
+   "tmax": 23.1,
+   "soil": 0.521
+  },
   {
    "date": "2017-01-01",
    "rainUp": 0,

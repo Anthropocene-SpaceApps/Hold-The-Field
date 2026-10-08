@@ -4,9 +4,12 @@ import org.anthropocene.htf.Main;
 import org.anthropocene.htf.core.Paths;
 import org.anthropocene.htf.core.Settings;
 
+import com.formdev.flatlaf.FlatDarkLaf;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +23,7 @@ import java.util.Random;
  */
 public final class Launcher {
     static final String VERSION = "1.0.0";
-    static final Color GREEN = new Color(0x4C9A2A), GREEN_DARK = new Color(0x2F6B14), INK = new Color(0x2B2118), PAPER = new Color(0xF3EBDA);
+    static final Color ACCENT = new Color(0x4DA3FF), ACCENT_DARK = new Color(0x2563B0), NAVY = new Color(0x0B1320), PANEL = new Color(0x111B2B);
 
     private final LauncherConfig cfg = LauncherConfig.load();
     private final Settings settings = Settings.load();
@@ -36,7 +39,16 @@ public final class Launcher {
     }
 
     private void show() {
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception ignored) { /* default look */ }
+        try {
+            com.formdev.flatlaf.FlatLaf.setGlobalExtraDefaults(java.util.Map.of("@accentColor", "#4DA3FF", "@background", "#0B1320", "@foreground", "#EEF4FB"));
+            FlatDarkLaf.setup();
+            UIManager.put("Button.arc", 12);
+            UIManager.put("Component.arc", 12);
+            UIManager.put("TabbedPane.tabHeight", 38);
+            UIManager.put("TabbedPane.showTabSeparators", true);
+            UIManager.put("ScrollBar.thumbArc", 999);
+            UIManager.put("ScrollBar.thumbInsets", new Insets(2, 2, 2, 2));
+        } catch (RuntimeException ignored) { /* fall back to the default look */ }
         frame = new JFrame("Hold the Field Launcher " + VERSION);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
@@ -78,39 +90,54 @@ public final class Launcher {
     // ------------------------------------------------------------------ banner
 
     private JComponent banner() {
-        BufferedImage dirt = dirtTile();
         JPanel p = new JPanel() {
             @Override protected void paintComponent(Graphics g0) {
                 Graphics2D g = (Graphics2D) g0;
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                for (int y = 0; y < getHeight(); y += 64) for (int x = 0; x < getWidth(); x += 64) g.drawImage(dirt, x, y, 64, 64, null);
+                int w = getWidth(), h = getHeight();
+                g.setPaint(new GradientPaint(0, 0, new Color(0x16263F), 0, h, new Color(0x6E5B52)));   // dusk sky
+                g.fillRect(0, 0, w, h);
+                g.setPaint(new RadialGradientPaint(w * 0.78f, h * 0.86f, h * 1.1f, new float[]{0f, 1f}, new Color[]{new Color(0xFFB36B, false), new Color(0xFFB36B & 0xFFFFFF, false)}));
+                g.setColor(new Color(255, 190, 120, 70));
+                g.fillOval((int) (w * 0.78) - 150, (int) (h * 0.86) - 150, 300, 300);
+                // layered hills
+                int[] cols = {0x1A2A44, 0x14223A, 0x0F1B2E};
+                for (int layer = 0; layer < 3; layer++) {
+                    Path2D hill = new Path2D.Double();
+                    hill.moveTo(0, h);
+                    for (int x = 0; x <= w; x += 8) {
+                        double y = h * (0.52 + layer * 0.12) - Math.sin(x * 0.011 + layer * 2.1) * 12 * (1 + layer * 0.2) - Math.sin(x * 0.027 + layer) * 6;
+                        hill.lineTo(x, y);
+                    }
+                    hill.lineTo(w, h);
+                    g.setColor(new Color(cols[layer]));
+                    g.fill(hill);
+                }
+                // paddy rows
+                g.setColor(new Color(0x0D1727));
+                g.fillRect(0, (int) (h * 0.86), w, h);
+                g.setColor(new Color(0xE6BE4B, false));
+                g.setColor(new Color(230, 190, 75, 55));
+                for (int i = 0; i < 6; i++) g.drawLine(0, (int) (h * 0.88) + i * 3, w, (int) (h * 0.88) + i * 3);
+                g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+                g.setColor(ACCENT);
+                g.drawString("NASA SPACE APPS CHALLENGE 2026  /  FIELD SHIFT", 32, 26);
+                g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 42));
                 g.setColor(new Color(0, 0, 0, 120));
-                g.fillRect(0, 0, getWidth(), getHeight());
-                g.setFont(new Font(Font.MONOSPACED, Font.BOLD, 40));
-                String title = "HOLD THE FIELD";
-                int tx = (getWidth() - g.getFontMetrics().stringWidth(title)) / 2;
-                g.setColor(new Color(0x3A2A12));
-                for (int d = 4; d > 0; d--) g.drawString(title, tx + d, 52 + d);
-                g.setColor(new Color(0xE6B73A));
-                g.drawString(title, tx, 52);
-                g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
+                g.drawString("Hold the ", 34, 72);
                 g.setColor(Color.WHITE);
-                String sub = "NASA SPACE APPS 2026  |  FIELD SHIFT  |  TEAM ANTHROPOCENE";
-                g.drawString(sub, (getWidth() - g.getFontMetrics().stringWidth(sub)) / 2, 76);
+                g.drawString("Hold the ", 32, 70);
+                int tw = g.getFontMetrics().stringWidth("Hold the ");
+                g.setColor(new Color(0xE6BE4B));
+                g.drawString("Field", 32 + tw, 70);
+                g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
+                g.setColor(new Color(0xB4C2D6));
+                g.drawString("Version " + VERSION + "   |   Team Anthropocene", 34, 92);
             }
         };
-        p.setPreferredSize(new Dimension(100, 92));
+        p.setPreferredSize(new Dimension(100, 106));
         return p;
-    }
-
-    private static BufferedImage dirtTile() {
-        BufferedImage img = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
-        Random rnd = new Random(2);
-        for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) {
-            int d = rnd.nextInt(29) - 14;
-            img.setRGB(x, y, new Color(Math.max(0, 134 + d), Math.max(0, 96 + d), Math.max(0, 67 + d)).getRGB());
-        }
-        return img;
     }
 
     // ------------------------------------------------------------------ tabs
@@ -121,7 +148,6 @@ public final class Launcher {
         JTextArea news = new JTextArea(readNews());
         news.setEditable(false); news.setLineWrap(true); news.setWrapStyleWord(true);
         news.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
-        news.setBackground(PAPER);
         news.setBorder(new EmptyBorder(8, 10, 8, 10));
         news.setCaretPosition(0);
         JScrollPane sp = new JScrollPane(news);
@@ -133,8 +159,8 @@ public final class Launcher {
         side.setPreferredSize(new Dimension(230, 100));
         play = new JButton("PLAY");
         play.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 30));
-        play.setBackground(GREEN); play.setForeground(Color.WHITE); play.setFocusPainted(false);
-        play.setBorder(BorderFactory.createLineBorder(GREEN_DARK, 3));
+        play.setBackground(ACCENT_DARK); play.setForeground(Color.WHITE); play.setFocusPainted(false);
+        play.putClientProperty("JButton.buttonType", "roundRect");
         play.setAlignmentX(Component.CENTER_ALIGNMENT);
         play.setMaximumSize(new Dimension(230, 78));
         play.addActionListener(e -> launch());
@@ -182,7 +208,8 @@ public final class Launcher {
         }
         top.add(list, BorderLayout.CENTER);
         JButton update = new JButton("Update NASA data");
-        update.setBackground(GREEN); update.setForeground(Color.WHITE); update.setFocusPainted(false);
+        update.setBackground(ACCENT_DARK); update.setForeground(Color.WHITE); update.setFocusPainted(false);
+        update.putClientProperty("JButton.buttonType", "roundRect");
         JProgressBar bar = new JProgressBar();
         bar.setVisible(false); bar.setIndeterminate(true);
         JPanel east = new JPanel(new BorderLayout(4, 4));
@@ -274,7 +301,7 @@ public final class Launcher {
     private JComponent consoleTab() {
         console.setEditable(false);
         console.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        console.setBackground(new Color(0x14181C)); console.setForeground(new Color(0xD8E0E8));
+        console.setBackground(new Color(0x0A111C)); console.setForeground(new Color(0xB9D0E8));
         JPanel p = new JPanel(new BorderLayout(6, 6));
         p.setBorder(new EmptyBorder(8, 8, 8, 8));
         p.add(new JScrollPane(console), BorderLayout.CENTER);

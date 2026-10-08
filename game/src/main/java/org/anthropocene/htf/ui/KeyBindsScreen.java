@@ -17,22 +17,21 @@ public final class KeyBindsScreen extends Screen {
 
     @Override
     protected void init() {
+        layoutCard(900, 620);
         buttons.clear();
         KeyAction[] all = KeyAction.values();
-        int rows = (all.length + 1) / 2;
-        int colW = Math.min(150, (w - 20) / 2 - 6), top = 30, dy = Math.min(24, (h - 76) / rows);
+        int rows = (all.length + 1) / 2, colW = (cardW - 64 - 28) / 2, top = cardY + 92, dy = 46;
         for (int i = 0; i < all.length; i++) {
             KeyAction a = all[i];
             int col = i / rows, row = i % rows;
-            int x = col == 0 ? w / 2 - colW - colW / 2 - 8 : w / 2 + 6 - colW / 2 + colW / 2;
-            x = w / 2 - (colW * 2 + 20) / 2 + col * (colW + 20);
+            int x = cardX + 32 + col * (colW + 28);
             Widget.Button b = new Widget.Button("", () -> { listening = a; refresh(); });
-            b.bounds(x + colW / 2 + 4, top + row * dy, colW / 2 + 8, 20);
+            b.bounds(x + colW - 150, top + row * dy, 150, 38);
             buttons.add(b);
             add(b);
         }
-        button("Reset Keys", w / 2 - 102, h - 28, 100, () -> { game.settings().resetKeys(); listening = null; refresh(); });
-        button("Done", w / 2 + 2, h - 28, 100, this::onEscape);
+        button("Reset to defaults", cardX + 32, cardY + cardH - 66, 220, () -> { game.settings().resetKeys(); listening = null; refresh(); });
+        button("Done", cardX + cardW - 32 - 220, cardY + cardH - 66, 220, this::onEscape).primary();
         refresh();
     }
 
@@ -41,12 +40,7 @@ public final class KeyBindsScreen extends Screen {
         KeyAction[] all = KeyAction.values();
         for (int i = 0; i < all.length; i++) {
             Widget.Button b = buttons.get(i);
-            KeyAction a = all[i];
-            if (a == listening) b.label = "> ? <";
-            else {
-                String name = KeyNames.of(s.key(a));
-                b.label = name.length() > 11 ? name.substring(0, 10) + "." : name;
-            }
+            b.label = all[i] == listening ? "Press a key..." : KeyNames.of(s.key(all[i]));
         }
     }
 
@@ -78,16 +72,15 @@ public final class KeyBindsScreen extends Screen {
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
-        title(r, "Key Binds", 11);
+        drawCard(r);
+        heading(r, "Key binds");
         KeyAction[] all = KeyAction.values();
         for (int i = 0; i < all.length; i++) {
             Widget.Button b = buttons.get(i);
             KeyAction a = all[i];
-            int colW = Math.min(150, (w - 20) / 2 - 6);
-            r.text(a.label, b.x - colW / 2 - 4, b.y + 5, 7.5f, conflict(a) ? 0xFFFF6666 : 0xFFFFFFFF, true, false);
-            b.label = b.label;
+            r.text(a.label, b.x - (cardW - 64 - 28) / 2 + 150, b.y + 11, 14, conflict(a) ? Theme.BAD : Theme.TEXT);
+            b.primary = a == listening;
         }
         for (Widget wd : widgets) wd.render(r, mx, my);
-        if (listening != null) r.textCentered("Press a key for \"" + listening.label + "\"  (Esc cancels)", w / 2f, h - 42, 8.5f, 0xFFFFFF55, true, false);
     }
 }

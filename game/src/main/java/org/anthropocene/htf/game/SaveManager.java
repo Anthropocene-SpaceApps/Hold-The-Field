@@ -28,7 +28,7 @@ public final class SaveManager {
     }
 
     public static final class SaveData {
-        public String id, name, seasonId, variety, mode;
+        public String id, name, seasonId, variety, mode, plantDate;
         public long created, updated;
         public int day;
         public boolean ended;

@@ -2,6 +2,8 @@ package org.anthropocene.htf.ui;
 
 import org.anthropocene.htf.gfx.Renderer2D;
 
+import static org.anthropocene.htf.ui.Theme.*;
+
 /** Yes/No dialog. */
 public final class ConfirmScreen extends Screen {
     private final String message, yes, no;
@@ -13,15 +15,18 @@ public final class ConfirmScreen extends Screen {
 
     @Override
     protected void init() {
-        button(yes, w / 2 - 102, h / 2 + 10, 100, () -> { game.setScreen(parent); onYes.run(); });
-        button(no, w / 2 + 2, h / 2 + 10, 100, () -> game.setScreen(parent));
+        layoutCard(460, 200);
+        Widget.Button b = button(yes, cardX + 32, cardY + cardH - 64, 190, () -> { game.setScreen(parent); onYes.run(); });
+        b.danger = true;
+        button(no, cardX + cardW - 222, cardY + cardH - 64, 190, () -> game.setScreen(parent));
     }
 
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
-        int y = h / 2 - 28;
-        for (String line : r.wrap(message, Math.min(320, w - 40), 9)) { r.textCentered(line, w / 2f, y, 9, 0xFFFFFFFF, true, false); y += 11; }
+        drawCard(r);
+        float y = cardY + 34;
+        for (String line : r.wrap(message, cardW - 64, 16)) { r.text(line, cardX + 32, y, 16, TEXT); y += 22; }
         for (Widget wd : widgets) wd.render(r, mx, my);
     }
 }

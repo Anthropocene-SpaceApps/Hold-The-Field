@@ -2,21 +2,22 @@ package org.anthropocene.htf.world;
 
 import org.joml.Vector3f;
 
-/** Walking / flying / swimming body with simple column-height collision (Minecraft-like feel). */
+/** First-person body: walking with gravity, wading, swimming and a free-fly mode. Metric units. */
 public final class Player {
-    public static final float EYE = 1.62f, RADIUS = 0.3f, HEIGHT = 1.8f, STEP = 0.6f;
-    private static final float GRAVITY = 28f, JUMP = 8.6f;
+    public static final float EYE = 1.65f, RADIUS = 0.35f, STEP = 0.6f;
+    private static final float GRAVITY = 22f, JUMP = 6.2f;
 
-    public final Vector3f pos = new Vector3f(4f, 1f, 24f);    // feet
+    public final Vector3f pos = new Vector3f(0, 0, 40);          // feet
     public final Vector3f vel = new Vector3f();
-    public float yaw, pitch = -0.12f;
+    public float yaw, pitch = -0.05f;
     public boolean flying, onGround, swimming, sprinting;
     public float walkedDistance;
 
-    /** What the player body asks of the world. */
+    /** What the body asks of the world. */
     public interface Collider {
-        double solidTop(int x, int z);
-        double waterSurface(double x, double z);   // NaN when there is no water
+        double groundHeight(double x, double z);
+        boolean blocked(double x, double z, double radius, double feetY);
+        double waterDepth(double x, double z);
     }
 
     public void teleport(float x, float y, float z, float yaw, float pitch) {
@@ -30,70 +31,60 @@ public final class Player {
         pitch = Math.max(-1.55f, Math.min(1.55f, pitch));
     }
 
-    private double groundAt(Collider c, float x, float z) {
-        double g = -64;
-        for (int sx = -1; sx <= 1; sx += 2) for (int sz = -1; sz <= 1; sz += 2)
-            g = Math.max(g, c.solidTop((int) Math.floor(x + sx * RADIUS), (int) Math.floor(z + sz * RADIUS)));
-        return g;
-    }
-
-    /** Is the body free to stand at (x, z) at its current feet height? */
-    private boolean free(Collider c, float x, float z, float feetY) {
-        return groundAt(c, x, z) <= feetY + STEP;
-    }
-
-    public void update(float dt, Collider world, float forward, float strafe, boolean jump, boolean sneak, boolean sprint) {
+    public void update(float dt, Collider w, float forward, float strafe, boolean jump, boolean sneak, boolean sprint) {
         dt = Math.min(dt, 0.05f);
-        double surface = world.waterSurface(pos.x, pos.z);
-        swimming = !Double.isNaN(surface) && pos.y < surface - 0.5 && !flying;
+        double depth = w.waterDepth(pos.x, pos.z);
+        swimming = depth > 1.25 && !flying;
         sprinting = sprint && forward > 0 && !swimming;
+        float wade = (float) (1 - Math.min(depth, 1.1) * 0.38);
 
-        float speed = flying ? (sprint ? 20f : 10.8f) : swimming ? 2.2f : sprinting ? 5.6f : sneak ? 1.3f : 4.3f;
+        float speed = flying ? (sprint ? 28f : 14f) : swimming ? 1.8f : sprinting ? 6.2f * wade : sneak ? 1.5f : 3.5f * wade;
         float sin = (float) Math.sin(yaw), cos = (float) Math.cos(yaw);
-        // forward vector on the ground plane is (-sin, -cos); right is (cos, -sin)
         float wx = -sin * forward + cos * strafe, wz = -cos * forward - sin * strafe;
         float len = (float) Math.hypot(wx, wz);
         if (len > 1) { wx /= len; wz /= len; }
-        float tx = wx * speed, tz = wz * speed;
-        float accel = onGround || flying || swimming ? 14f : 3f;
-        vel.x += (tx - vel.x) * Math.min(1, accel * dt);
-        vel.z += (tz - vel.z) * Math.min(1, accel * dt);
+        float accel = onGround || flying || swimming ? 12f : 3f;
+        vel.x += (wx * speed - vel.x) * Math.min(1, accel * dt);
+        vel.z += (wz * speed - vel.z) * Math.min(1, accel * dt);
 
+        double groundHere = w.groundHeight(pos.x, pos.z);
         if (flying) {
             float ty = (jump ? 1 : 0) - (sneak ? 1 : 0);
-            vel.y += (ty * (sprint ? 14f : 8f) - vel.y) * Math.min(1, 10 * dt);
+            vel.y += (ty * (sprint ? 20f : 10f) - vel.y) * Math.min(1, 8 * dt);
         } else if (swimming) {
-            vel.y += ((jump ? 3.2f : -1.2f) - vel.y) * Math.min(1, 4 * dt);
+            double surface = groundHere + depth;
+            float target = jump ? 2.2f : sneak ? -2.2f : (float) ((surface - 1.15 - pos.y) * 1.8);
+            vel.y += (target - vel.y) * Math.min(1, 5 * dt);
         } else {
             vel.y -= GRAVITY * dt;
             if (jump && onGround) { vel.y = JUMP; onGround = false; }
-            vel.y = Math.max(vel.y, -50f);
+            vel.y = Math.max(vel.y, -40f);
         }
 
         float nx = pos.x + vel.x * dt, nz = pos.z + vel.z * dt;
         if (flying) { pos.x = nx; pos.z = nz; }
         else {
-            if (free(world, nx, pos.z, pos.y)) pos.x = nx; else vel.x = 0;
-            if (free(world, pos.x, nz, pos.y)) pos.z = nz; else vel.z = 0;
+            if (!w.blocked(nx, pos.z, RADIUS, pos.y)) pos.x = nx; else vel.x = 0;
+            if (!w.blocked(pos.x, nz, RADIUS, pos.y)) pos.z = nz; else vel.z = 0;
         }
         pos.y += vel.y * dt;
 
-        double ground = groundAt(world, pos.x, pos.z);
+        double ground = w.groundHeight(pos.x, pos.z);
         onGround = false;
         if (pos.y <= ground) {
             pos.y = (float) ground;
             if (vel.y < 0) vel.y = 0;
             onGround = true;
         }
-        if (flying && onGround && sneak) flying = false;     // sneak on the ground lands you
-        pos.x = Math.max(Terrain.X0 + 1, Math.min(Terrain.X1 - 2, pos.x));
-        pos.z = Math.max(Terrain.Z0 + 1, Math.min(Terrain.Z1 - 2, pos.z));
-        pos.y = Math.max(-4f, Math.min(90f, pos.y));
+        if (flying && onGround && sneak) flying = false;
+        pos.x = Math.max(Landscape.X0 + 5, Math.min(Landscape.X1 - 5, pos.x));
+        pos.z = Math.max(Landscape.Z0 + 5, Math.min(Landscape.Z1 - 5, pos.z));
+        pos.y = Math.max(-6f, Math.min(900f, pos.y));
         if (onGround && len > 0.1f) walkedDistance += (float) Math.hypot(vel.x, vel.z) * dt;
     }
 
     public Vector3f eye(boolean bob) {
-        float b = bob && onGround ? (float) Math.sin(walkedDistance * 2.2) * 0.035f : 0f;
-        return new Vector3f(pos.x, pos.y + (EYE - (0)) + b, pos.z);
+        float b = bob && onGround ? (float) Math.sin(walkedDistance * 2.0) * 0.03f : 0f;
+        return new Vector3f(pos.x, pos.y + EYE + b, pos.z);
     }
 }

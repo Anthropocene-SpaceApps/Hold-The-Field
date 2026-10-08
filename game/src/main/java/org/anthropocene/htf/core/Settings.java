@@ -23,6 +23,11 @@ public final class Settings {
     public boolean clouds = true;
     public boolean particles = true;
     public boolean viewBobbing = true;
+    public boolean shadows = true;
+    public boolean bloom = true;
+    public int msaa = 4;                  // 0, 2, 4, 8
+    public int timeMode = 0;              // see Atmosphere.TIME_MODES
+    public int grass = 2;                 // 0 off, 1 medium, 2 high
     public int windowWidth = 1280;
     public int windowHeight = 720;
     // Controls
@@ -73,6 +78,9 @@ public final class Settings {
         renderDistance = Math.max(4, Math.min(16, renderDistance));
         guiScale = Math.max(0, Math.min(5, guiScale));
         maxFps = Math.max(30, Math.min(260, maxFps));
+        msaa = (msaa == 2 || msaa == 4 || msaa == 8) ? msaa : 0;
+        timeMode = Math.max(0, Math.min(4, timeMode));
+        grass = Math.max(0, Math.min(2, grass));
         windowWidth = Math.max(640, windowWidth);
         windowHeight = Math.max(480, windowHeight);
         brightness = clamp01(brightness); mouseSensitivity = clamp01(mouseSensitivity);

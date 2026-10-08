@@ -8,6 +8,8 @@ public final class GameState {
     public record Point(double level, double bund) {}
 
     public int i;                       // index into season days (the day just simulated)
+    public int startIndex;              // index of the transplanting day (history[0])
+    public String transplant;           // ISO date the rice was transplanted
     public String date;
     public String variety;
     public int coins;
@@ -27,7 +29,7 @@ public final class GameState {
 
     public GameState copy() {
         GameState s = new GameState();
-        s.i = i; s.date = date; s.variety = variety; s.coins = coins; s.bund = bund; s.bundRaises = bundRaises;
+        s.i = i; s.startIndex = startIndex; s.transplant = transplant; s.date = date; s.variety = variety; s.coins = coins; s.bund = bund; s.bundRaises = bundRaises;
         s.level = level; s.maturity = maturity; s.alive = alive; s.harvested = harvested; s.yieldPct = yieldPct;
         s.underwaterDays = underwaterDays; s.flooded = flooded; s.status = status; s.finished = finished;
         s.events = new ArrayList<>(events);

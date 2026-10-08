@@ -1,48 +1,99 @@
 package org.anthropocene.htf.ui;
 
+import org.anthropocene.htf.game.ReportExporter;
 import org.anthropocene.htf.game.Session;
 import org.anthropocene.htf.gfx.Renderer2D;
+import org.anthropocene.htf.sim.Config;
 import org.anthropocene.htf.sim.Engine;
 import org.anthropocene.htf.sim.Event;
 import org.anthropocene.htf.sim.GameState;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
-/** Season report: your result against Rahim's way (or the scout), lead time, chart, timeline. */
+import static org.anthropocene.htf.ui.Theme.*;
+
+/**
+ * The debrief. Your result against the farmer who got no warning, how early NASA's data spoke, and what every
+ * variety and planting date would have yielded on the same real weather.
+ */
 public final class EndScreen extends Screen {
     private final Session session;
     private final GameState other;
     private Chart chart;
+    private List<Engine.Plan> noWarning, withScout;
+    private final List<String> insights = new ArrayList<>();
 
     public EndScreen(Session session, GameState other) { this.session = session; this.other = other; }
 
     @Override
     protected void init() {
+        layoutCard(Math.min(w - 40, 1160), Math.min(h - 40, 680));
         GameState st = session.state;
+        Config cfg = session.cfg;
         int n = session.season.length();
-        double[] level = new double[st.history.size()], bund = new double[st.history.size()];
-        for (int i = 0; i < level.length; i++) { level[i] = st.history.get(i).level(); bund[i] = st.history.get(i).bund(); }
+        double[] level = new double[n], bund = new double[n];
         String[] dates = new String[n];
-        for (int i = 0; i < n; i++) dates[i] = Hud.date(session.season.day(i).date());
-        chart = new Chart("Floodwater vs bund, whole run (m)");
-        chart.days = n; chart.visibleUntil = st.i; chart.cursorDay = st.i; chart.dates = dates; chart.decimals = 2;
-        chart.areaOf("Water", level, 0xFF4F9BE0, "m").stepped("Bund", bund, 0xFFC08040, "m");
+        for (int i = 0; i < n; i++) {
+            dates[i] = Hud.date(session.season.day(i).date());
+            int k = Math.max(0, Math.min(st.history.size() - 1, i - st.startIndex));
+            level[i] = i < st.startIndex ? 0 : st.history.get(k).level();
+            bund[i] = st.history.get(k).bund();
+        }
+        chart = new Chart("Floodwater vs your embankment (m)");
+        chart.days = n; chart.visibleUntil = st.i; chart.cursorDay = st.i; chart.dates = dates; chart.decimals = 2; chart.firstDay = st.startIndex;
+        chart.areaOf("Water", level, WATER, "m").stepped("Embankment", bund, SOIL, "m");
         for (Event e : st.events) {
             switch (e.type()) {
-                case "warning" -> chart.vline(e.i(), 0xFFFF6B6B, "warning");
-                case "flood" -> chart.vline(e.i(), 0xFF6BB8FF, "flood");
-                case "harvest" -> chart.vline(e.i(), 0xFF8CE06A, "harvest");
+                case "warning" -> chart.vline(e.i(), BAD, "warning");
+                case "flood" -> chart.vline(e.i(), WATER, "flood");
+                case "harvest" -> chart.vline(e.i(), GOOD, "harvest");
                 case "loss" -> chart.vline(e.i(), 0xFFCCCCCC, "loss");
                 default -> { }
             }
         }
-        int bx = w / 2 - 154, by = h - 26;
-        button("Play Again", bx, by, 100, () -> {
-            Session fresh = new Session(session.season, session.mode, session.variety, session.name + " (again)");
-            game.startSession(fresh);
-        });
-        button("Keep Looking Around", bx + 104, by, 100, () -> game.setScreen(null));
-        button("Title Screen", bx + 208, by, 100, game::quitToTitle);
+        noWarning = Engine.planningWindow(session.season, cfg, "rahim");
+        withScout = Engine.planningWindow(session.season, cfg, "scout");
+        buildInsights();
+
+        int by = cardY + cardH - 62, bw = (cardW - 64 - 4 * 10) / 5;
+        int x = cardX + 32;
+        button("Play again", x, by, bw, () -> game.startSession(new Session(session.season, session.mode, session.variety, session.name + " (again)", st.transplant))).primary();
+        button("Try another plan", x + (bw + 10), by, bw, () -> open(new PlanSeasonScreen()));
+        button("Save report", x + (bw + 10) * 2, by, bw, this::exportReport);
+        button("Look around", x + (bw + 10) * 3, by, bw, () -> game.setScreen(null));
+        button("Title screen", x + (bw + 10) * 4, by, bw, game::quitToTitle);
+    }
+
+    private void buildInsights() {
+        insights.clear();
+        Config cfg = session.cfg;
+        Engine.Summary sum = Engine.summarize(session.state);
+        Engine.Plan bestNo = noWarning.stream().max(java.util.Comparator.comparingDouble(Engine.Plan::yieldPct)).orElse(null);
+        Engine.Plan bestScout = withScout.stream().max(java.util.Comparator.comparingDouble(Engine.Plan::yieldPct)).orElse(null);
+        if (sum.leadDays() != null) insights.add("NASA rain data in the hills gave a warning " + sum.leadDays() + " day" + (sum.leadDays() == 1 ? "" : "s") + " before the water reached the embankment.");
+        else if (sum.floodDate() != null) insights.add("The flood arrived without a scout warning ahead of it.");
+        else insights.add("No flood reached the embankment on this plan.");
+        if (bestNo != null) insights.add("With no warning at all, the best plan keeps " + Math.round(bestNo.yieldPct() * 100) + "%: " + planLabel(bestNo) + ".");
+        if (bestScout != null) insights.add("Acting on the scout, the best plan keeps " + Math.round(bestScout.yieldPct() * 100) + "%: " + planLabel(bestScout) + ".");
+        if (bestNo != null && bestNo.variety().equals("short") && !bestNo.transplant().equals(cfg.transplantOptions[cfg.transplantOptions.length - 1][0]))
+            insights.add("Ripening earlier let the rice come in before the spring water: timing is itself an adaptation.");
+        else if (bestNo != null && bestNo.yieldPct() < 0.5)
+            insights.add("Without a warning, every plan here lost most of the crop: early warning, not the calendar, is what protects the harvest.");
+    }
+
+    private String planLabel(Engine.Plan p) { return session.cfg.varieties.get(p.variety()).label().replace("-duration boro", "") + ", " + p.label(); }
+
+    private void exportReport() {
+        try {
+            Path p = ReportExporter.export(session, other, noWarning, withScout);
+            game.toastMsg("Report saved: " + p);
+            game.say("System", "Report saved to " + p, 0xFFB6D8FF);
+        } catch (IOException e) {
+            game.toastMsg("Could not save the report: " + e.getMessage());
+        }
     }
 
     @Override protected void onEscape() { game.setScreen(null); }
@@ -50,45 +101,80 @@ public final class EndScreen extends Screen {
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
+        drawCard(r);
         GameState st = session.state;
         boolean rahim = session.mode.equals(Session.MODE_RAHIM);
-        title(r, st.yieldPct > 0 ? "The rice is home" : "The water took it all", 8);
+        r.text(st.yieldPct > 0 ? "The rice is home" : "The water took it all", cardX + 32, cardY + 22, 30, TEXT, false, true);
+        r.text("Same field, same real rain. The difference is whether the warning reached the farmer, and how the season was planned.", cardX + 32, cardY + 62, 13, MUTED);
 
-        int bw = Math.min(150, w / 2 - 16), y = 28;
-        card(r, w / 2 - bw - 4, y, bw, rahim ? "Rahim's way (no scout)" : "You, with the scout", st.yieldPct, 0xFFE0C040);
-        card(r, w / 2 + 4, y, bw, rahim ? "With the scout" : "Rahim's way (no scout)", other.yieldPct, 0xFF8AB4F0);
+        int x0 = cardX + 32, top = cardY + 100;
+        int c1 = 300, c3 = 330, gap = 22, c2 = cardW - 64 - c1 - c3 - gap * 2;
+        // --- results
+        result(r, x0, top, c1, rahim ? "Rahim's way (no scout)" : "You, with the scout", st.yieldPct, CROP);
+        result(r, x0, top + 118, c1, rahim ? "With the scout" : "Rahim's way (no scout)", other.yieldPct, 0xFF8AB4F0);
+        float y = top + 246;
+        Theme.label(r, "What the data showed", x0, y);
+        y += 18;
+        for (String line : insights) for (String l : r.wrap(line, c1, 12.5f)) { r.text(l, x0, y, 12.5f, 0xFFD3DEEC); y += 17; if (y > cardY + cardH - 80) break; }
 
-        Engine.Summary sum = Engine.summarize(st);
-        String lead = sum.leadDays() == null
-                ? (sum.floodDate() != null ? "The flood came, and no scout warning came before it." : "No flood reached the bund this season.")
-                : "NASA data warned " + sum.leadDays() + " day" + (sum.leadDays() == 1 ? "" : "s") + " before the water arrived ("
-                + Hud.date(sum.warningDate()) + " to " + Hud.date(sum.floodDate()) + ").";
-        int cy = y + 52;
-        for (String line : r.wrap(lead, Math.min(400, w - 20), 9)) { r.textCentered(line, w / 2f, cy, 9, 0xFFFFFFFF, true, true); cy += 11; }
-
-        int chartH = Math.max(70, Math.min(110, h - cy - 96));
-        int cw = Math.min(400, w - 20);
-        chart.draw(r, w / 2 - cw / 2, cy + 4, cw, chartH, mx, my);
-
-        // timeline
-        int ty = cy + chartH + 10;
+        // --- chart + timeline
+        int cx = x0 + c1 + gap;
+        chart.draw(r, cx, top, c2, 230, mx, my);
+        float ty = top + 246;
+        Theme.label(r, "Timeline", cx, ty);
+        ty += 18;
         List<Event> events = st.events.stream().filter(e -> !e.type().equals("watch")).toList();
-        int shown = 0;
-        for (int i = Math.max(0, events.size() - 5); i < events.size() && ty < h - 34; i++, shown++) {
+        for (int i = Math.max(0, events.size() - 6); i < events.size() && ty < cardY + cardH - 80; i++) {
             Event e = events.get(i);
-            int col = switch (e.type()) { case "warning", "loss" -> 0xFFFF7777; case "flood" -> 0xFF77BBFF; case "harvest" -> 0xFF99E077; default -> 0xFFDDDDDD; };
-            r.textCentered(Hud.date(e.date()) + ": " + e.text(), w / 2f, ty, 7.5f, col, true, false);
-            ty += 9;
+            int col = switch (e.type()) { case "warning", "loss" -> BAD; case "flood" -> WATER; case "harvest" -> GOOD; default -> TEXT; };
+            r.circle(cx + 4, ty + 7, 3.5f, col);
+            r.text(Hud.date(e.date()) + "   " + e.text(), cx + 16, ty, 12.5f, 0xFFD3DEEC);
+            ty += 19;
         }
-        r.textCentered("Same field, same real rain. The only difference is whether the warning reached the farmer.", w / 2f, h - 38, 7.5f, 0xFFB0B0B0, true, false);
+
+        // --- planting window grids
+        int gx = cx + c2 + gap;
+        Theme.label(r, "Every plan, same real weather", gx, top - 2);
+        grid(r, gx, top + 18, c3, "No warning, no action", noWarning);
+        grid(r, gx, top + 18 + 166, c3, "Acting on the scout", withScout);
         for (Widget wd : widgets) wd.render(r, mx, my);
     }
 
-    private void card(Renderer2D r, int x, int y, int w, String label, double yield, int color) {
-        r.rect(x, y, w, 46, 0xFF000000);
-        r.rect(x + 1, y + 1, w - 2, 44, 0xE0202428);
-        r.textCentered(label, x + w / 2f, y + 4, 7.5f, 0xFFB0B0B0, true, false);
-        r.textCentered(Math.round(yield * 100) + "%", x + w / 2f, y + 14, 22, color, true, true);
-        r.textCentered("of the harvest saved", x + w / 2f, y + 36, 7, 0xFFB0B0B0, true, false);
+    private void result(Renderer2D r, int x, int y, int w, String label, double yield, int color) {
+        r.roundRect(x, y, w, 106, 13, 0x16FFFFFF);
+        r.roundRing(x, y, w, 106, 13, 1f, BORDER);
+        r.text(label, x + 16, y + 12, 12.5f, MUTED, false, true);
+        r.text(Math.round(yield * 100) + "%", x + 16, y + 30, 46, color, false, true);
+        r.text("of the harvest saved", x + 16, y + 84, 12, FAINT);
+        r.roundRect(x + w - 100, y + 76, 84, 8, 4, 0x22FFFFFF);
+        r.roundRect(x + w - 100, y + 76, 84 * (float) Math.min(1, yield), 8, 4, color);
+    }
+
+    private void grid(Renderer2D r, int x, int y, int w, String title, List<Engine.Plan> plans) {
+        r.text(title, x, y, 13, TEXT, false, true);
+        Config cfg = session.cfg;
+        int cols = cfg.transplantOptions.length, cw = (w - 78) / cols, ch = 44;
+        for (int c = 0; c < cols; c++) r.textCentered(cfg.transplantOptions[c][1].replaceAll(" \\(.*", ""), x + 78 + c * cw + cw / 2f, y + 22, 11, MUTED, false, false);
+        String[] vs = {"short", "long"};
+        for (int ri = 0; ri < 2; ri++) {
+            r.text(vs[ri].equals("short") ? "Short rice" : "Long rice", x, y + 46 + ri * (ch + 6) + 14, 12, MUTED);
+            for (int c = 0; c < cols; c++) {
+                Engine.Plan p = find(plans, vs[ri], cfg.transplantOptions[c][0]);
+                float cx = x + 78 + c * cw + 3, cy = y + 40 + ri * (ch + 6);
+                if (p == null) { r.roundRect(cx, cy, cw - 6, ch, 9, 0x10FFFFFF); continue; }
+                float f = (float) Math.min(1, p.yieldPct());
+                int col = Renderer2D.lerp(0xFFB5453A, 0xFF4FBF7E, f);
+                r.roundRect(cx, cy, cw - 6, ch, 9, Renderer2D.withAlpha(col, 0.78f));
+                r.textCentered(Math.round(p.yieldPct() * 100) + "%", cx + (cw - 6) / 2f, cy + 13, 17, 0xFFFFFFFF, false, true);
+                boolean mine = p.variety().equals(session.variety) && p.transplant().equals(session.state.transplant);
+                if (mine) r.roundRing(cx - 1, cy - 1, cw - 4, ch + 2, 10, 2.2f, 0xFFFFFFFF);
+            }
+        }
+        r.text("White outline = your plan", x, y + 150, 10.5f, FAINT);
+    }
+
+    private Engine.Plan find(List<Engine.Plan> plans, String variety, String transplant) {
+        for (Engine.Plan p : plans) if (p.variety().equals(variety) && p.transplant().equals(transplant)) return p;
+        return null;
     }
 }

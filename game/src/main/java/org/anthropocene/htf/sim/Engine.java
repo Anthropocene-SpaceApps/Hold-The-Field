@@ -29,9 +29,21 @@ public final class Engine {
     }
 
     public static GameState createState(Season data, Config cfg, String variety) {
+        return createState(data, cfg, variety, cfg.defaultTransplant.toString());
+    }
+
+    /** First day at or after the requested date that the data covers. */
+    public static int indexOnOrAfter(Season data, String iso) {
+        for (int k = 0; k < data.length(); k++) if (data.day(k).date().compareTo(iso) >= 0) return k;
+        return data.length() - 1;
+    }
+
+    public static GameState createState(Season data, Config cfg, String variety, String transplantIso) {
         GameState s = new GameState();
-        s.i = 0;
-        s.date = data.day(0).date();
+        s.startIndex = indexOnOrAfter(data, transplantIso);
+        s.transplant = data.day(s.startIndex).date();
+        s.i = s.startIndex;
+        s.date = data.day(s.i).date();
         s.variety = variety;
         s.coins = cfg.startCoins;
         s.bund = cfg.bundStart;
@@ -40,7 +52,11 @@ public final class Engine {
     }
 
     public static double maturityOn(String dayIso, String variety, Config cfg) {
-        long d = ChronoUnit.DAYS.between(cfg.transplantDate, LocalDate.parse(dayIso));
+        return maturityOn(dayIso, variety, cfg.defaultTransplant.toString(), cfg);
+    }
+
+    public static double maturityOn(String dayIso, String variety, String transplantIso, Config cfg) {
+        long d = ChronoUnit.DAYS.between(LocalDate.parse(transplantIso), LocalDate.parse(dayIso));
         double m = d / (double) cfg.varieties.get(variety).fieldDays();
         return Math.max(0, Math.min(1, m));
     }
@@ -58,7 +74,7 @@ public final class Engine {
             s.finished = true;
             if (s.alive && !s.harvested) {
                 s.harvested = true;
-                s.yieldPct = s.maturity;
+                s.yieldPct = s.maturity * cfg.varieties.get(s.variety).potential();
                 s.events.add(ev(s, "harvest", "Season ended: crop harvested"));
             }
             return s;
@@ -81,7 +97,7 @@ public final class Engine {
         if (s.flooded && !wasFlooded) s.events.add(ev(s, "flood", "Flash flood: water over the bund"));
 
         if (!s.harvested && s.alive) {
-            s.maturity = maturityOn(day.date(), s.variety, cfg);
+            s.maturity = maturityOn(day.date(), s.variety, s.transplant, cfg);
             if (s.flooded) {
                 s.underwaterDays += 1;
                 if (s.underwaterDays >= cfg.daysUnderwaterToKill) {
@@ -94,7 +110,7 @@ public final class Engine {
             }
             if (s.alive && s.maturity >= 1) {
                 s.harvested = true;
-                s.yieldPct = 1;
+                s.yieldPct = cfg.varieties.get(s.variety).potential();
                 s.events.add(ev(s, "harvest", "Full harvest"));
             }
         }
@@ -125,8 +141,8 @@ public final class Engine {
                             Math.round(s.maturity * 100), Math.round(cfg.minHarvestMaturity * 100)));
                 }
                 s.harvested = true;
-                s.yieldPct = s.maturity;
-                s.events.add(ev(s, "harvest", "Harvested early at " + Math.round(s.maturity * 100) + "%"));
+                s.yieldPct = s.maturity * cfg.varieties.get(s.variety).potential();
+                s.events.add(ev(s, "harvest", "Harvested early at " + Math.round(s.maturity * 100) + "% maturity"));
                 return new ActionResult(s, true, null);
             }
         }
@@ -135,7 +151,11 @@ public final class Engine {
 
     /** Run a whole season with a fixed policy. "rahim" = no actions; "scout" = act on warnings. */
     public static GameState autoplay(Season data, Config cfg, String policy, String variety) {
-        GameState s = createState(data, cfg, variety);
+        return autoplay(data, cfg, policy, variety, cfg.defaultTransplant.toString());
+    }
+
+    public static GameState autoplay(Season data, Config cfg, String policy, String variety, String transplantIso) {
+        GameState s = createState(data, cfg, variety, transplantIso);
         while (!s.finished) {
             s = step(s, data, cfg);
             if (policy.equals("scout") && !s.harvested && s.alive) {
@@ -154,6 +174,23 @@ public final class Engine {
 
     public static GameState autoplay(Season data, Config cfg, String policy) {
         return autoplay(data, cfg, policy, policy.equals("rahim") ? "long" : "short");
+    }
+
+    /** One cell of the planting-window analysis: what a plan yields if the farmer takes no action at all. */
+    public record Plan(String variety, String transplant, String label, double yieldPct, boolean lost) {}
+
+    /** Try every variety and transplanting option on the same real weather, with no defences, no warning. */
+    public static java.util.List<Plan> planningWindow(Season data, Config cfg) { return planningWindow(data, cfg, "rahim"); }
+
+    /** policy "rahim" = no warning, no action; "scout" = act on the satellite warning. */
+    public static java.util.List<Plan> planningWindow(Season data, Config cfg, String policy) {
+        java.util.List<Plan> out = new java.util.ArrayList<>();
+        for (String variety : new String[]{"short", "long"}) for (String[] opt : cfg.transplantOptions) {
+            if (data.day(0).date().compareTo(opt[0]) > 0) continue;
+            GameState s = autoplay(data, cfg, policy, variety, opt[0]);
+            out.add(new Plan(variety, opt[0], opt[1], s.yieldPct, !s.alive));
+        }
+        return out;
     }
 
     public static Summary summarize(GameState state) {

@@ -7,7 +7,7 @@ import org.joml.Vector3f;
 public final class Camera {
     public final Vector3f pos = new Vector3f();
     public float yaw, pitch;
-    public float fovDeg = 70, near = 0.08f, far = 420f;
+    public float fovDeg = 70, near = 0.1f, far = 3200f;
     public final Matrix4f proj = new Matrix4f(), view = new Matrix4f(), viewProj = new Matrix4f();
 
     public Vector3f forward() {

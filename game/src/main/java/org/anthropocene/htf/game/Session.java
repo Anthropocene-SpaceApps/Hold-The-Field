@@ -25,23 +25,27 @@ public final class Session {
     public boolean endShown;
 
     public Session(Season season, String mode, String variety, String name) {
+        this(season, mode, variety, name, Config.DEFAULT.defaultTransplant.toString());
+    }
+
+    public Session(Season season, String mode, String variety, String name, String plantDate) {
         this.season = season;
         this.mode = mode;
         this.variety = mode.equals(MODE_RAHIM) ? "long" : variety;
         this.name = name;
         this.id = SaveManager.newId();
         this.created = System.currentTimeMillis();
-        this.state = Engine.createState(season, cfg, this.variety);
+        this.state = Engine.createState(season, cfg, this.variety, plantDate);
     }
 
     public boolean actionsAllowed() { return mode.equals(MODE_SCOUT); }
 
     public static Session restore(Season season, SaveManager.SaveData d) {
-        Session s = new Session(season, d.mode, d.variety, d.name);
+        Session s = new Session(season, d.mode, d.variety, d.name, d.plantDate != null ? d.plantDate : Config.DEFAULT.defaultTransplant.toString());
         s.id = d.id;
         s.created = d.created;
         s.actions.addAll(d.actions);
-        for (int day = 0; day < d.day && !s.state.finished; day++) {
+        for (int day = s.state.startIndex; day < d.day && !s.state.finished; day++) {
             s.replayActionsOn(day);
             s.state = Engine.step(s.state, season, s.cfg);
         }
@@ -62,7 +66,7 @@ public final class Session {
     public SaveManager.SaveData toSave() {
         SaveManager.SaveData d = new SaveManager.SaveData();
         d.id = id; d.name = name; d.seasonId = season.id; d.variety = variety; d.mode = mode;
-        d.created = created; d.day = state.i; d.ended = endShown; d.yieldPct = state.yieldPct;
+        d.plantDate = state.transplant; d.created = created; d.day = state.i; d.ended = endShown; d.yieldPct = state.yieldPct;
         d.actions = new ArrayList<>(actions);
         return d;
     }
@@ -97,6 +101,6 @@ public final class Session {
     }
 
     public GameState baseline() {
-        return Engine.autoplay(season, cfg, mode.equals(MODE_RAHIM) ? "scout" : "rahim");
+        return Engine.autoplay(season, cfg, mode.equals(MODE_RAHIM) ? "scout" : "rahim", mode.equals(MODE_RAHIM) ? "short" : "long", state.transplant);
     }
 }

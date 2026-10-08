@@ -35,7 +35,7 @@ class EngineTest {
     @Test void dryDayCropReachesFullHarvestNoFlood() {
         GameState f = Engine.autoplay(makeData(Map.of()), CFG, "rahim", "short");
         assertTrue(f.alive);
-        assertEquals(1.0, f.yieldPct);
+        assertEquals(CFG.varieties.get("short").potential(), f.yieldPct, 1e-9, "a full harvest yields the variety's potential");
         assertTrue(f.events.stream().noneMatch(e -> e.type().equals("flood")));
     }
 
@@ -85,7 +85,7 @@ class EngineTest {
     }
 
     @Test void maturityGrowsLinearlyFromTransplantDate() {
-        assertEquals(0, Engine.maturityOn(CFG.transplantDate.toString(), "long", CFG));
+        assertEquals(0, Engine.maturityOn(CFG.defaultTransplant.toString(), "long", CFG));
         assertEquals(1, Engine.maturityOn("2030-01-01", "long", CFG));
     }
 
@@ -123,5 +123,51 @@ class EngineTest {
 
     @Test void malformedSeasonIsRejected() {
         assertThrows(IllegalStateException.class, () -> SeasonLoader.parse("{\"days\":[]}"));
+    }
+
+    @Test void shortVarietyYieldsLessButRipensSooner() {
+        Season data = makeData(Map.of());
+        GameState shortRice = Engine.autoplay(data, CFG, "rahim", "short");
+        GameState longRice = Engine.autoplay(data, CFG, "rahim", "long");
+        assertEquals(CFG.varieties.get("short").potential(), shortRice.yieldPct, 1e-9);
+        assertEquals(CFG.varieties.get("long").potential(), longRice.yieldPct, 1e-9);
+        assertTrue(shortRice.yieldPct < longRice.yieldPct);
+        int shortDay = shortRice.events.stream().filter(e -> e.type().equals("harvest")).findFirst().orElseThrow().i();
+        int longDay = longRice.events.stream().filter(e -> e.type().equals("harvest")).findFirst().orElseThrow().i();
+        assertTrue(shortDay < longDay);
+    }
+
+    @Test void transplantDateMovesTheWholeSchedule() {
+        Season data = makeData(Map.of());
+        GameState early = Engine.createState(data, CFG, "long", "2017-01-02");
+        GameState late = Engine.createState(data, CFG, "long", "2017-01-20");
+        assertEquals("2017-01-02", early.transplant);
+        assertEquals(1, early.startIndex);
+        assertEquals(19, late.startIndex);
+        assertEquals(0.0, late.maturity, 1e-9, "nothing has grown on the transplant day");
+        assertTrue(Engine.step(late, data, CFG).maturity > 0);
+        GameState e = Engine.autoplay(data, CFG, "rahim", "short", "2017-01-02"), l = Engine.autoplay(data, CFG, "rahim", "short", "2017-01-20");
+        assertTrue(e.events.stream().filter(x -> x.type().equals("harvest")).findFirst().orElseThrow().i()
+                < l.events.stream().filter(x -> x.type().equals("harvest")).findFirst().orElseThrow().i());
+    }
+
+    @Test void planningWindowCoversEveryOptionAndRewardsEarlyShortRiceInALateFlood() {
+        // flood centred on day ~100: short rice planted on the earliest option is cut long before it
+        Season data = makeData(storm(95, 108, 230));
+        List<Engine.Plan> noWarning = Engine.planningWindow(data, CFG, "rahim");
+        assertTrue(noWarning.size() >= 2);
+        Engine.Plan earlyShort = noWarning.stream().filter(p -> p.variety().equals("short")).min(java.util.Comparator.comparing(Engine.Plan::transplant)).orElseThrow();
+        Engine.Plan lateLong = noWarning.stream().filter(p -> p.variety().equals("long")).max(java.util.Comparator.comparing(Engine.Plan::transplant)).orElseThrow();
+        assertTrue(earlyShort.yieldPct() >= lateLong.yieldPct());
+        List<Engine.Plan> scout = Engine.planningWindow(data, CFG, "scout");
+        for (int i = 0; i < noWarning.size(); i++) assertTrue(scout.get(i).yieldPct() >= noWarning.get(i).yieldPct() - 1e-9, "acting on the scout never does worse");
+    }
+
+    @Test void historyStartsAtTheTransplantDay() {
+        Season data = makeData(Map.of());
+        GameState s = Engine.createState(data, CFG, "long", "2017-01-10");
+        s = Engine.step(s, data, CFG);
+        assertEquals(2, s.history.size());
+        assertEquals(s.startIndex + 1, s.i);
     }
 }

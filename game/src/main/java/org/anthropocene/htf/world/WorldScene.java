@@ -6,87 +6,186 @@ import org.anthropocene.htf.sim.Config;
 import org.anthropocene.htf.sim.Day;
 import org.anthropocene.htf.sim.GameState;
 import org.anthropocene.htf.sim.Season;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.lwjgl.BufferUtils;
 
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static org.anthropocene.htf.gfx.MeshBuilder.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.GL_MULTISAMPLE;
+import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
+import static org.lwjgl.opengl.GL30.GL_R32F;
 
-/** Everything you see in the 3D world: static terrain plus the live scene driven by the simulation state. */
+/** The 3D world: landscape, sky, water, embankment, farm, driven live by the simulation state. */
 public final class WorldScene implements Player.Collider {
-    public enum TargetType { NONE, BUND, CROP }
-    public record Target(TargetType type, int x, int y, int z, double dist) {
+    public enum TargetType { NONE, BUND, CROP, RAHIM, GAUGE }
+    public record Target(TargetType type, double x, double y, double z, double dist) {
         public static final Target NONE = new Target(TargetType.NONE, 0, 0, 0, Double.MAX_VALUE);
     }
 
-    private static final String VS = """
-            #version 330 core
-            layout(location=0) in vec3 pos; layout(location=1) in vec2 uv; layout(location=2) in vec4 col;
-            uniform mat4 vp; uniform vec3 camPos;
-            out vec2 vUv; out vec4 vCol; out float vDist;
-            void main(){ vUv = uv; vCol = col; vDist = length(pos - camPos); gl_Position = vp * vec4(pos, 1.0); }""";
-    private static final String FS = """
-            #version 330 core
-            in vec2 vUv; in vec4 vCol; in float vDist;
-            uniform sampler2D tex; uniform vec3 fogColor; uniform float fogStart, fogEnd, light, cutoff;
-            out vec4 frag;
-            void main(){
-                vec4 t = texture(tex, vUv);
-                if (t.a * vCol.a < cutoff) discard;
-                vec3 c = t.rgb * vCol.rgb * light;
-                float f = smoothstep(fogStart, fogEnd, vDist);
-                frag = vec4(mix(c, fogColor, f), t.a * vCol.a);
-            }""";
+    private static final int SHADOW_SIZE = 2048;
+    private static final String SKIP = System.getProperty("htf.skip", "");
+    private static boolean skip(String pass) { return SKIP.contains(pass); }
+    public static final float REF = Landscape.DIKE_REF_H;
 
-    // geometry constants shared with gameplay
-    public static final float BLOCK_M = 0.15f;                   // metres of water per block
-    public static final int CLOUD_COUNT = 24;
+    private final Landscape land = new Landscape();
+    private final Atmosphere atmo = new Atmosphere();
+    private final Random rnd = new Random(42);
 
-    private final Terrain terrain = new Terrain();
-    private final Shader shader = new Shader(VS, FS);
-    private final GpuMesh staticMesh = new GpuMesh(false), dynOpaque = new GpuMesh(true), dynTrans = new GpuMesh(true);
-    private final MeshBuilder mbO = new MeshBuilder(), mbT = new MeshBuilder();
-    private final int atlasTex;
-    private final Random rnd = new Random(1234);
+    private final Shader skyS = ShaderLoader.load2("fullscreen", "sky");
+    private final Shader terrainS = ShaderLoader.load("terrain");
+    private final Shader waterS = ShaderLoader.load("water");
+    private final Shader dikeS = ShaderLoader.load("dike");
+    private final Shader propsS = ShaderLoader.load("props");
+    private final Shader propsDepthS = ShaderLoader.load("props_depth");
+    private final Farmstead farm;
+    private final StaticMesh propsMesh;
+    private final Foliage foliage;
+    private final Rahim rahim;
+    private final Boat boat = new Boat();
+    private final Weather weather = new Weather();
+    private final StaticMesh riverMesh;
+    private final Vector3f viewer = new Vector3f(0, 0, 40);
+    private double riverSwell;
+    private Framebuffer shadowFbo;
+    private final Matrix4f lightVP = new Matrix4f();
+    private boolean shadowActive;
+    private final StaticMesh terrainMesh, waterMesh, dikeMesh;
+    private final int heightTex, emptyVao;
+    private final Post post = new Post();
+    private Framebuffer sceneFbo, resolveFbo;
+    private int lastW, lastH, lastSamples = -1;
 
     private Season season;
     private Config cfg = Config.DEFAULT;
     private GameState state;
 
     // smoothed visuals
-    private double time, shownLevel, shownFlood, storm, farmRain, upRain, riverSwell;
-    private int bundBlocks = 4;
-    private double bundGrow = 1;
-    private final float[][] clouds = new float[CLOUD_COUNT][4];   // x, y, z, size
-    private final float[] dropX = new float[1600], dropY = new float[1600], dropZ = new float[1600];
-    private final List<float[]> particles = new ArrayList<>();    // x y z vx vy vz life r g b
-    public final float[] sky = {0.53f, 0.74f, 0.92f};
+    private double time, shownLevel, shownBund = Landscape.DIKE_REF_H, floodReach, storm, farmRain, upRain, flash, flashTimer = 8, cropMat;
+    public boolean overlay;                       // satellite data layer
+    private boolean lightningPending;
+    private final List<float[]> particles = new ArrayList<>();
 
-    public WorldScene(int atlasTex) {
-        this.atlasTex = atlasTex;
-        MeshBuilder mb = new MeshBuilder();
-        terrain.buildStatic(mb);
-        staticMesh.upload(mb);
-        for (int i = 0; i < CLOUD_COUNT; i++) {
-            clouds[i][0] = -70 + rnd.nextFloat() * 150;
-            clouds[i][1] = 42 + rnd.nextFloat() * 8;
-            clouds[i][2] = i < 18 ? -68 + rnd.nextFloat() * 56 : -8 + rnd.nextFloat() * 24;
-            clouds[i][3] = 5 + rnd.nextFloat() * 5;
-        }
-        for (int i = 0; i < dropX.length; i++) {
-            boolean up = i < 900;
-            dropX[i] = up ? -22 + rnd.nextFloat() * 54 : -14 + rnd.nextFloat() * 36;
-            dropZ[i] = up ? -66 + rnd.nextFloat() * 46 : -14 + rnd.nextFloat() * 32;
-            dropY[i] = rnd.nextFloat() * 40;
-        }
+    public WorldScene() {
+        terrainMesh = buildTerrain();
+        waterMesh = buildWater();
+        dikeMesh = buildDike();
+        heightTex = buildHeightTexture();
+        farm = new Farmstead(land);
+        propsMesh = farm.builder().build();
+        foliage = new Foliage(land, farm);
+        rahim = new Rahim(land);
+        riverMesh = buildRiver();
+        emptyVao = org.lwjgl.opengl.GL30.glGenVertexArrays();
     }
 
-    public Terrain terrain() { return terrain; }
+    public Landscape landscape() { return land; }
+    public void setViewer(Vector3f p) { viewer.set(p); }
+    public Rahim rahim() { return rahim; }
+    public Atmosphere atmosphere() { return atmo; }
+
+    // ------------------------------------------------------------------ GPU resources
+
+    private StaticMesh buildTerrain() {
+        int nx = Landscape.NX + 1, nz = Landscape.NZ + 1;
+        float[] v = new float[nx * nz * 6];
+        int k = 0;
+        for (int j = 0; j < nz; j++) for (int i = 0; i < nx; i++) {
+            float x = Landscape.X0 + i * Landscape.CELL, z = Landscape.Z0 + j * Landscape.CELL, y = land.node(i, j);
+            float dx = (land.node(i - 1, j) - land.node(i + 1, j)) / (2 * Landscape.CELL);
+            float dz = (land.node(i, j - 1) - land.node(i, j + 1)) / (2 * Landscape.CELL);
+            float len = (float) Math.sqrt(dx * dx + 1 + dz * dz);
+            v[k++] = x; v[k++] = y; v[k++] = z; v[k++] = dx / len; v[k++] = 1 / len; v[k++] = dz / len;
+        }
+        int[] idx = new int[Landscape.NX * Landscape.NZ * 6];
+        k = 0;
+        for (int j = 0; j < Landscape.NZ; j++) for (int i = 0; i < Landscape.NX; i++) {
+            int a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+            idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d;
+        }
+        return StaticMesh.create(v, idx, 3, 3);
+    }
+
+    private StaticMesh buildWater() {
+        float step = 4f;
+        int nx = (int) ((Landscape.X1 - Landscape.X0) / step) + 1, nz = (int) ((Landscape.Z1 - Landscape.Z0) / step) + 1;
+        float[] v = new float[nx * nz * 3];
+        int k = 0;
+        for (int j = 0; j < nz; j++) for (int i = 0; i < nx; i++) { v[k++] = Landscape.X0 + i * step; v[k++] = 0; v[k++] = Landscape.Z0 + j * step; }
+        int[] idx = new int[(nx - 1) * (nz - 1) * 6];
+        k = 0;
+        for (int j = 0; j < nz - 1; j++) for (int i = 0; i < nx - 1; i++) {
+            int a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+            idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d;
+        }
+        return StaticMesh.create(v, idx, 3);
+    }
+
+    private StaticMesh buildRiver() {
+        int n = (int) ((-260 - -900) / 6f) + 1;
+        float[] v = new float[n * 2 * 3];
+        int[] idx = new int[(n - 1) * 6];
+        int k = 0;
+        for (int i = 0; i < n; i++) {
+            float z = -900 + i * 6f, x = Landscape.riverX(z), y = Landscape.riverBed(z) + 0.85f;
+            v[k++] = x - 22; v[k++] = y; v[k++] = z;
+            v[k++] = x + 22; v[k++] = y; v[k++] = z;
+        }
+        k = 0;
+        for (int i = 0; i < n - 1; i++) {
+            int a = i * 2, b = a + 1, c = a + 2, d = a + 3;
+            idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d;
+        }
+        return StaticMesh.create(v, idx, 3);
+    }
+
+    private StaticMesh buildDike() {
+        float stepX = 1.5f;
+        int cols = (int) ((Landscape.DIKE_X1 - Landscape.DIKE_X0) / stepX) + 1;
+        float c = Landscape.DIKE_CROWN, s = Landscape.DIKE_SLOPE;
+        float[] zoff = {-(c + s), -(c + s * 0.5f), -c, 0, c, c + s * 0.5f, c + s};
+        int rows = zoff.length;
+        float[] v = new float[cols * rows * 7];
+        int k = 0;
+        for (int i = 0; i < cols; i++) for (int r = 0; r < rows; r++) {
+            float x = Landscape.DIKE_X0 + i * stepX, z = Landscape.DIKE_Z + zoff[r];
+            float base = land.height(x, z) - 0.04f, rise = Landscape.dikeFraction(x, z) * REF;
+            float e = 0.6f;
+            float hx0 = land.height(x - e, z) + Landscape.dikeFraction(x - e, z) * REF, hx1 = land.height(x + e, z) + Landscape.dikeFraction(x + e, z) * REF;
+            float hz0 = land.height(x, z - e) + Landscape.dikeFraction(x, z - e) * REF, hz1 = land.height(x, z + e) + Landscape.dikeFraction(x, z + e) * REF;
+            float nx = hx0 - hx1, nz = hz0 - hz1, nl = (float) Math.sqrt(nx * nx + 4 * e * e + nz * nz);
+            v[k++] = x; v[k++] = base; v[k++] = z; v[k++] = rise; v[k++] = nx / nl; v[k++] = 2 * e / nl; v[k++] = nz / nl;
+        }
+        int[] idx = new int[(cols - 1) * (rows - 1) * 6];
+        k = 0;
+        for (int i = 0; i < cols - 1; i++) for (int r = 0; r < rows - 1; r++) {
+            int a = i * rows + r, b = a + 1, cc = a + rows, d = cc + 1;
+            idx[k++] = a; idx[k++] = cc; idx[k++] = b; idx[k++] = b; idx[k++] = cc; idx[k++] = d;
+        }
+        return StaticMesh.create(v, idx, 3, 1, 3);
+    }
+
+    private int buildHeightTexture() {
+        int w = Landscape.NX + 1, h = Landscape.NZ + 1;
+        FloatBuffer fb = BufferUtils.createFloatBuffer(w * h);
+        fb.put(land.raw()).flip();
+        int t = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, t);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, w, h, 0, GL_RED, GL_FLOAT, fb);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        return t;
+    }
+
+    // ------------------------------------------------------------------ session
 
     public void setSession(Season season, Config cfg, GameState state) {
         this.season = season;
@@ -100,127 +199,138 @@ public final class WorldScene implements Player.Collider {
     /** Jump visuals straight to the current state (new game, load, restart). */
     public void snap() {
         if (state == null) return;
-        bundBlocks = Math.round((float) (state.bund / BLOCK_M));
         shownLevel = state.level;
-        shownFlood = floodTarget();
-        bundGrow = 1;
+        shownBund = state.bund;
+        floodReach = state.flooded ? 500 : 0;
         Day d = season.day(state.i);
         upRain = clamp01(d.rainUp() / 150);
         farmRain = clamp01(d.rainFarm() / 60);
         storm = Math.max(upRain, farmRain);
-        riverSwell = 0;
+        cropMat = state.maturity;
         particles.clear();
     }
 
     private static double clamp01(double v) { return Math.max(0, Math.min(1, v)); }
 
-    private double floodTarget() {
-        if (state == null || !state.flooded) return 0;
-        return Math.min(4, (state.level - state.bund) / BLOCK_M + 1);
-    }
-
     public double rainIntensityUp() { return upRain; }
     public double rainIntensityFarm() { return farmRain; }
     public double stormLevel() { return storm; }
+    public double shownLevel() { return shownLevel; }
+    public double bundHeight() { return shownBund; }
 
     // ------------------------------------------------------------------ update
 
-    public void update(double dt, boolean particlesOn) {
+    public void update(double dt, Settings st) {
         time += dt;
-        if (state == null || season == null) return;
-        int target = Math.round((float) (state.bund / BLOCK_M));
-        if (target > bundBlocks) { bundBlocks = target; bundGrow = 0; }
-        else if (target < bundBlocks) { bundBlocks = target; bundGrow = 1; }
-        bundGrow = Math.min(1, bundGrow + dt * 2.2);
-
-        Day d = season.day(state.i);
-        double k = Math.min(1, dt * 2.5);
-        upRain += (clamp01(d.rainUp() / 150) - upRain) * k;
-        farmRain += (clamp01(d.rainFarm() / 60) - farmRain) * k;
-        storm += (Math.max(upRain, farmRain) - storm) * Math.min(1, dt * 1.5);
-        shownLevel += (state.level - shownLevel) * Math.min(1, dt * 3);
-        shownFlood += (floodTarget() - shownFlood) * Math.min(1, dt * 1.6);
-        Day lagged = season.day(Math.max(0, state.i - cfg.lagDays));
-        riverSwell += (clamp01(lagged.rainUp() / 200) - riverSwell) * Math.min(1, dt * 2);
-
-        // rain falls
-        float speed = 30f;
-        for (int i = 0; i < dropY.length; i++) {
-            dropY[i] -= speed * dt;
-            if (dropY[i] < -1) {
-                boolean up = i < 900;
-                dropY[i] += 42;
-                dropX[i] = up ? -22 + rnd.nextFloat() * 54 : -14 + rnd.nextFloat() * 36;
-                dropZ[i] = up ? -66 + rnd.nextFloat() * 46 : -14 + rnd.nextFloat() * 32;
-            }
+        if (state != null && season != null) {
+            Day d = season.day(state.i);
+            double k = Math.min(1, dt * 2.0);
+            upRain += (clamp01(d.rainUp() / 150) - upRain) * k;
+            farmRain += (clamp01(d.rainFarm() / 60) - farmRain) * k;
+            storm += (Math.max(upRain, farmRain) - storm) * Math.min(1, dt * 1.2);
+            shownLevel += (state.level - shownLevel) * Math.min(1, dt * 2.4);
+            shownBund += (state.bund - shownBund) * Math.min(1, dt * 3.0);
+            cropMat += (state.maturity - cropMat) * Math.min(1, dt * 3.0);
+            Day lagged = season.day(Math.max(0, state.i - cfg.lagDays));
+            riverSwell += (clamp01(lagged.rainUp() / 220) - riverSwell) * Math.min(1, dt * 1.5);
+            if (state.flooded) floodReach = Math.min(500, floodReach + dt * 16);
+            else floodReach = Math.max(0, floodReach - dt * 45);
         }
-        for (int c = 0; c < CLOUD_COUNT; c++) {
-            clouds[c][0] += (float) (dt * (1.2 + storm * 3.0));
-            if (clouds[c][0] > 85) clouds[c][0] = -85;
+        // lightning in heavy storms
+        flash = Math.max(0, flash - dt * 3.2);
+        flashTimer -= dt;
+        if (storm > 0.72 && flashTimer <= 0) {
+            flash = 0.8 + rnd.nextDouble() * 0.5;
+            lightningPending = true;
+            flashTimer = 3 + rnd.nextDouble() * 9;
         }
-        // particles
+        atmo.update(dt, st.timeMode, storm, flash);
+        rahim.update(time, dt, state, viewer);
         for (int p = particles.size() - 1; p >= 0; p--) {
             float[] q = particles.get(p);
-            q[4] -= 16f * (float) dt;
+            q[4] -= 9.8f * (float) dt;
             q[0] += q[3] * (float) dt; q[1] += q[4] * (float) dt; q[2] += q[5] * (float) dt;
             q[6] -= (float) dt;
             if (q[6] <= 0) particles.remove(p);
         }
-        if (!particlesOn) particles.clear();
     }
 
     public void burst(float x, float y, float z, int count, float r, float g, float b) {
-        for (int i = 0; i < count && particles.size() < 220; i++) {
-            particles.add(new float[]{x + (rnd.nextFloat() - .5f) * .6f, y, z + (rnd.nextFloat() - .5f) * .6f,
-                    (rnd.nextFloat() - .5f) * 3.5f, 3f + rnd.nextFloat() * 4f, (rnd.nextFloat() - .5f) * 3.5f,
-                    0.6f + rnd.nextFloat() * 0.5f, r, g, b});
+        for (int i = 0; i < count && particles.size() < 400; i++)
+            particles.add(new float[]{x + (rnd.nextFloat() - .5f), y, z + (rnd.nextFloat() - .5f),
+                    (rnd.nextFloat() - .5f) * 3f, 2f + rnd.nextFloat() * 3.5f, (rnd.nextFloat() - .5f) * 3f, 0.8f + rnd.nextFloat() * 0.6f, r, g, b});
+    }
+
+    public double flashLevel() { return flash; }
+
+    /** True once for each new lightning flash (the game schedules the thunder after it). */
+    public boolean pollLightning() { boolean p = lightningPending; lightningPending = false; return p; }
+
+    // ------------------------------------------------------------------ collider
+
+    private double terrainAndDike(double x, double z) {
+        double y = land.height(x, z);
+        if (x > Landscape.DIKE_X0 && x < Landscape.DIKE_X1 && Math.abs(z - Landscape.DIKE_Z) < Landscape.DIKE_CROWN + Landscape.DIKE_SLOPE)
+            y += Landscape.dikeFraction((float) x, (float) z) * shownBund;
+        return y;
+    }
+
+    @Override public double groundHeight(double x, double z) { return terrainAndDike(x, z); }
+
+    @Override
+    public boolean blocked(double x, double z, double radius, double feetY) {
+        if (terrainAndDike(x, z) > feetY + Player.STEP) return true;
+        for (Farmstead.Obstacle o : farm.obstacles()) {
+            if (o.circle()) { if (Math.hypot(x - o.x(), z - o.z()) < o.hx() + radius) return true; }
+            else if (Math.abs(x - o.x()) < o.hx() + radius && Math.abs(z - o.z()) < o.hz() + radius) return true;
         }
-    }
-
-    // ------------------------------------------------------------------ queries
-
-    public double lakeSurfaceY() { return 1 + shownLevel / BLOCK_M; }
-    public int bundTopY() { return 1 + bundBlocks; }
-
-    @Override
-    public double solidTop(int x, int z) {
-        double t = terrain.solidTop(x, z);
-        if (z == Terrain.BUND_Z && x >= Terrain.PLAIN_X0 && x < Terrain.PLAIN_X1) t = Math.max(t, bundTopY());
-        return t;
+        return false;
     }
 
     @Override
+    public double waterDepth(double x, double z) {
+        double ground = land.height(x, z);
+        double depth = Math.max(0, shownLevel - ground);
+        if (z > Landscape.DIKE_Z) {
+            double south = z - Landscape.DIKE_Z;
+            depth = floodReach > 1 && south < floodReach ? depth : 0;
+        }
+        double pond = Math.hypot(x - Landscape.POND_X, z - Landscape.POND_Z);
+        if (pond < 13) depth = Math.max(depth, Landscape.POND_LEVEL - ground);
+        return Math.max(0, depth);
+    }
+
+    /** Surface height of the water here (ground + depth) or NaN. */
     public double waterSurface(double x, double z) {
-        int ix = (int) Math.floor(x), iz = (int) Math.floor(z);
-        if (Terrain.inLake(ix, iz) && shownLevel > 0.02) return lakeSurfaceY();
-        if (Terrain.inPlain(ix, iz) && shownFlood > 0.05 && terrain.height(ix, iz) < 1 + shownFlood) return 1 + shownFlood;
-        if (x >= Terrain.RIVER_X0 && x < Terrain.RIVER_X1 && iz < Terrain.LAKE_Z0 && iz > -60) return -0.4 + riverSwell * 1.3;
-        return Double.NaN;
+        double d = waterDepth(x, z);
+        return d > 0.01 ? land.height(x, z) + d : Double.NaN;
     }
+
+    // ------------------------------------------------------------------ picking
 
     private float cropHeight() {
         if (state == null || !state.alive || state.harvested) return 0;
-        return (float) (0.45 + 0.55 * state.maturity);
+        return (float) (0.12 + 0.88 * state.maturity);
     }
 
-    /** Ray against the bund wall and the crop field. */
     public Target pick(Vector3f o, Vector3f d, double reach) {
         Target best = Target.NONE;
         if (state == null) return best;
         double[] hit = new double[1];
-        float bx0 = Terrain.PLAIN_X0, bx1 = Terrain.PLAIN_X1, bz0 = Terrain.BUND_Z, bz1 = Terrain.BUND_Z + 1;
-        if (rayBox(o, d, bx0, 1, bz0, bx1, bundTopY(), bz1, hit) && hit[0] <= reach) {
-            double t = hit[0] + 0.002;
-            int cx = (int) Math.floor(o.x + d.x * t), cy = (int) Math.floor(o.y + d.y * t);
-            cy = Math.max(1, Math.min(bundTopY() - 1, cy));
-            best = new Target(TargetType.BUND, cx, cy, Terrain.BUND_Z, hit[0]);
+        float bz0 = Landscape.DIKE_Z - Landscape.DIKE_CROWN - Landscape.DIKE_SLOPE, bz1 = Landscape.DIKE_Z + Landscape.DIKE_CROWN + Landscape.DIKE_SLOPE;
+        if (rayBox(o, d, Landscape.DIKE_X0, -0.2f, bz0, Landscape.DIKE_X1, (float) shownBund + 0.15f, bz1, hit) && hit[0] <= reach) {
+            double t = hit[0];
+            best = new Target(TargetType.BUND, o.x + d.x * t, o.y + d.y * t, o.z + d.z * t, hit[0]);
         }
         float ch = cropHeight();
-        if (ch > 0 && rayBox(o, d, 0, 1, 0, Terrain.FIELD, 1 + ch, Terrain.FIELD, hit) && hit[0] <= reach && hit[0] < best.dist()) {
-            double t = hit[0] + 0.002;
-            int cx = (int) Math.floor(o.x + d.x * t), cz = (int) Math.floor(o.z + d.z * t);
-            cx = Math.max(0, Math.min(Terrain.FIELD - 1, cx)); cz = Math.max(0, Math.min(Terrain.FIELD - 1, cz));
-            best = new Target(TargetType.CROP, cx, 1, cz, hit[0]);
+        if (ch > 0 && rayBox(o, d, Landscape.PLOT_X0, 0f, Landscape.PLOT_Z0, Landscape.PLOT_X1, ch + 0.05f, Landscape.PLOT_Z1, hit) && hit[0] <= reach && hit[0] < best.dist()) {
+            double t = hit[0];
+            best = new Target(TargetType.CROP, o.x + d.x * t, o.y + d.y * t, o.z + d.z * t, hit[0]);
+        }
+        float rg = rahim.groundY();
+        if (rayBox(o, d, Rahim.X - 0.55f, rg, Rahim.Z - 0.55f, Rahim.X + 0.55f, rg + 1.95f, Rahim.Z + 0.55f, hit) && hit[0] <= reach && hit[0] < best.dist()) {
+            double t = hit[0];
+            best = new Target(TargetType.RAHIM, o.x + d.x * t, o.y + d.y * t, o.z + d.z * t, hit[0]);
         }
         return best;
     }
@@ -241,240 +351,205 @@ public final class WorldScene implements Player.Collider {
 
     // ------------------------------------------------------------------ rendering
 
-    public void render(Camera cam, Settings st, Target highlight, int fbW, int fbH) {
-        float stormF = (float) storm;
-        float[] clear = {0.53f * (1 - stormF * 0.5f) + 0.30f * stormF * 0.5f, 0.74f * (1 - stormF * 0.55f) + 0.34f * stormF * 0.55f, 0.92f * (1 - stormF * 0.45f) + 0.40f * stormF * 0.45f};
-        System.arraycopy(clear, 0, sky, 0, 3);
-        glViewport(0, 0, fbW, fbH);
-        glClearColor(clear[0], clear[1], clear[2], 1f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    private void ensureTargets(int w, int h, int samples) {
+        if (sceneFbo != null && w == lastW && h == lastH && samples == lastSamples) return;
+        if (sceneFbo != null) { sceneFbo.destroy(); if (resolveFbo != sceneFbo) resolveFbo.destroy(); }
+        lastW = w; lastH = h; lastSamples = samples;
+        sceneFbo = Framebuffer.hdr(w, h, samples, true);
+        resolveFbo = samples > 1 ? Framebuffer.hdr(w, h, 1, false) : sceneFbo;
+    }
+
+    private void common(Shader s, Camera cam) {
+        s.use();
+        s.set("uCamPos", cam.pos.x, cam.pos.y, cam.pos.z);
+        s.set("uSunDir", atmo.sunDir.x, atmo.sunDir.y, atmo.sunDir.z);
+        s.set("uSunColor", atmo.sunColor.x, atmo.sunColor.y, atmo.sunColor.z);
+        s.set("uSkyZenith", atmo.zenith.x, atmo.zenith.y, atmo.zenith.z);
+        s.set("uSkyHorizon", atmo.horizon.x, atmo.horizon.y, atmo.horizon.z);
+        s.set("uGround", atmo.ground.x, atmo.ground.y, atmo.ground.z);
+        s.set("uFogColor", atmo.fog.x, atmo.fog.y, atmo.fog.z);
+        s.set("uFogDensity", atmo.fogDensity * (overlay ? 0.12f : 1f));
+        s.set("uStorm", (float) storm);
+        s.set("uTime", (float) time);
+        s.set("uFlash", (float) Math.min(1, flash));
+        s.set("uShadowOn", shadowActive ? 1f : 0f);
+        s.set("uLightVP", lightVP);
+        s.set("uShadow", 5);
+    }
+
+    private Matrix4f boatMatrix() {
+        float g = land.height(Boat.X, Boat.Z);
+        boolean floating = shownLevel > g + 0.12;
+        float y = floating ? (float) shownLevel - 0.34f : g + 0.06f;
+        float roll = floating ? (float) Math.sin(time * 1.2) * 0.04f : 0.05f, pitch = floating ? (float) Math.sin(time * 0.9 + 1) * 0.03f : -0.03f;
+        return new Matrix4f().translate(Boat.X, y, Boat.Z).rotateY(Boat.YAW).rotateZ(roll).rotateX(pitch);
+    }
+
+    /** Fit an orthographic sun camera around the player and render the casters' depth. */
+    private void shadowPass(Camera cam, Settings st) {
+        shadowActive = st.shadows && atmo.sunDir.y > 0.07f;
+        if (!shadowActive) return;
+        if (shadowFbo == null) shadowFbo = Framebuffer.shadow(SHADOW_SIZE);
+        float extent = 62f;
+        Vector3f fwd = cam.forward();
+        Vector3f centre = new Vector3f(cam.pos.x + fwd.x * 22f, Math.max(0, cam.pos.y * 0.2f), cam.pos.z + fwd.z * 22f);
+        Vector3f sun = new Vector3f(atmo.sunDir);
+        Matrix4f view = new Matrix4f().lookAt(new Vector3f(centre).add(new Vector3f(sun).mul(180f)), centre, new Vector3f(0, 1, 0));
+        // snap the centre to whole shadow texels so the shadows do not shimmer when the camera moves
+        float texel = 2 * extent / SHADOW_SIZE;
+        Vector3f lc = view.transformPosition(new Vector3f(centre));
+        lc.x = Math.round(lc.x / texel) * texel; lc.y = Math.round(lc.y / texel) * texel;
+        Matrix4f inv = new Matrix4f(view).invert();
+        Vector3f snapped = inv.transformPosition(new Vector3f(lc));
+        view = new Matrix4f().lookAt(new Vector3f(snapped).add(new Vector3f(sun).mul(180f)), snapped, new Vector3f(0, 1, 0));
+        lightVP.set(new Matrix4f().ortho(-extent, extent, -extent, extent, 5f, 420f)).mul(view);
+
+        shadowFbo.bind();
+        glClear(GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
-        glDepthMask(true);
-        glDisable(GL_BLEND);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(2.0f, 4.0f);
+        propsDepthS.use();
+        propsDepthS.set("uLightVP", lightVP);
+        propsDepthS.set("uModel", new Matrix4f());
+        propsDepthS.set("uShadow", 5); propsDepthS.set("uShadowOn", 0f);
+        propsMesh.draw();
+        rahim.mesh().draw();
+        propsDepthS.set("uModel", boatMatrix());
+        boat.mesh().draw();
+        glDisable(GL_POLYGON_OFFSET_FILL);
+    }
 
-        buildDynamic(cam, st, highlight);
-        dynOpaque.upload(mbO);
-        dynTrans.upload(mbT);
+    public void render(Camera cam, Settings st, Target highlight, int fbW, int fbH) {
+        if (state == null || season == null) { glViewport(0, 0, fbW, fbH); glClearColor(0, 0, 0, 1); glClear(GL_COLOR_BUFFER_BIT); return; }
+        int samples = st.msaa;
+        ensureTargets(fbW, fbH, samples);
 
-        float fogEnd = st.renderDistance * 12f + 24f;
-        shader.use();
-        shader.set("vp", cam.viewProj);
-        shader.set("camPos", cam.pos.x, cam.pos.y, cam.pos.z);
-        shader.set("fogColor", clear[0], clear[1], clear[2]);
-        shader.set("fogStart", fogEnd * 0.55f);
-        shader.set("fogEnd", fogEnd);
-        shader.set("light", (float) ((0.72 + 0.55 * st.brightness) * (1 - 0.28 * storm)));
-        shader.set("tex", 0);
+        shadowPass(cam, st);
+
+        sceneFbo.bind();
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_MULTISAMPLE);
+        glActiveTexture(GL_TEXTURE0 + 5);
+        glBindTexture(GL_TEXTURE_2D, shadowFbo != null ? shadowFbo.depthTex : heightTex);
+        glActiveTexture(GL_TEXTURE0 + 6);
+        glBindTexture(GL_TEXTURE_2D, heightTex);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, atlasTex);
 
-        shader.set("cutoff", 0.5f);
-        staticMesh.draw();
-        dynOpaque.draw();
+        // sky (no depth)
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+        common(skyS, cam);
+        skyS.set("uInvVP", new Matrix4f(cam.viewProj).invert());
+        org.lwjgl.opengl.GL30.glBindVertexArray(emptyVao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        org.lwjgl.opengl.GL30.glBindVertexArray(0);
 
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+        glDisable(GL_CULL_FACE);
+
+        // terrain
+        common(terrainS, cam);
+        terrainS.set("uVP", cam.viewProj);
+        terrainS.set("uLevel", (float) shownLevel);
+        terrainS.set("uDry", (float) (1 - clamp01(shownLevel / 0.35)));
+        terrainS.set("uCrop", (float) Math.min(1, cropMat * 0.9 + 0.1));
+        terrainS.set("uFloodDmg", (float) clamp01((floodReach / 300.0) * (state.underwaterDays > 0 || !state.alive ? 1 : 0.4)));
+        terrainS.set("uHarvested", state.harvested ? 1f : 0f);
+        terrainS.set("uOverlay", overlay ? 1f : 0f);
+        terrainS.set("uRainUp", (float) upRain);
+        terrainS.set("uSoil", (float) clamp01(season.day(state.i).soil()));
+        if (!skip("terrain")) terrainMesh.draw();
+
+        // embankment
+        common(dikeS, cam);
+        dikeS.set("uVP", cam.viewProj);
+        dikeS.set("uBundScale", (float) (shownBund / REF));
+        dikeS.set("uRefH", REF);
+        dikeMesh.draw();
+
+        // props (house, trees, ...)
+        common(propsS, cam);
+        propsS.set("uVP", cam.viewProj);
+        propsS.set("uModel", new Matrix4f());
+        propsS.set("uWind", (float) (0.12 + storm * 0.9));
+        propsS.set("uBundH", (float) shownBund);
+        propsS.set("uWet", (float) clamp01(farmRain * 1.3));
+        if (!skip("props")) propsMesh.draw();
+        rahim.mesh().draw();
+        propsS.set("uModel", boatMatrix());
+        boat.mesh().draw();
+        propsS.set("uModel", new Matrix4f());
+
+        // plants
+        common(foliage.shader(), cam);
+        Shader fs = foliage.shader();
+        fs.set("uVP", cam.viewProj);
+        fs.set("uHeightTex", 6);
+        float hsx = (float) Landscape.NX / (Landscape.NX + 1) / (Landscape.X1 - Landscape.X0), hsz = (float) Landscape.NZ / (Landscape.NZ + 1) / (Landscape.Z1 - Landscape.Z0);
+        fs.set("uHeightRect", Landscape.X0 - 0.5f / (Landscape.NX + 1) / hsx, Landscape.Z0 - 0.5f / (Landscape.NZ + 1) / hsz, hsx, hsz);
+        double wind = 0.10 + storm * 0.95;
+        double grassFrac = st.grass == 2 ? 1.0 : st.grass == 1 ? 0.45 : 0.0;
+        double riceFrac = st.grass == 2 ? 1.0 : st.grass == 1 ? 0.55 : 0.3;
+        boolean lodged = state.flooded || !state.alive;
+        double lean = !state.alive ? 0.9 : state.flooded ? clamp01(0.3 + shownLevel * 0.6) : 0;
+        if (skip("foliage")) { } else if (state.harvested && state.alive) foliage.drawRice(0.11, 1.0, 0.0, 0.35, 0, wind, riceFrac, true);
+        else foliage.drawRice(0.14 + 0.95 * Math.min(1, cropMat), cropMat, Math.max(0, (cropMat - 0.55) / 0.45), state.alive ? 0 : 1, lean, wind, riceFrac, true);
+        if (!skip("foliage")) { foliage.drawGrass(wind, grassFrac); foliage.drawReeds(wind, st.grass == 0 ? 0.3 : 1.0); }
+
+        // water
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(false);
-        shader.set("cutoff", 0.02f);
-        dynTrans.draw();
+        common(waterS, cam);
+        waterS.set("uVP", cam.viewProj);
+        waterS.set("uHeight", 6);
+        float sx = (float) Landscape.NX / (Landscape.NX + 1) / (Landscape.X1 - Landscape.X0), sz = (float) Landscape.NZ / (Landscape.NZ + 1) / (Landscape.Z1 - Landscape.Z0);
+        waterS.set("uHeightRect", Landscape.X0 - 0.5f / (Landscape.NX + 1) / sx, Landscape.Z0 - 0.5f / (Landscape.NZ + 1) / sz, sx, sz);
+        waterS.set("uProtectZ", Landscape.DIKE_Z);
+        waterS.set("uFloodReach", (float) floodReach);
+        waterS.set("uTurbid", (float) (0.15 + 0.7 * clamp01((shownLevel - 0.3) / 0.8)));
+        waterS.set("uRain", (float) farmRain);
+        waterS.set("uRegion", 0f, 0f, 0f, 0f);
+        waterS.set("uProtect", 1f);
+        waterS.set("uFlow", 0f, 0f);
+        waterS.set("uYAdd", 0f);
+        waterS.set("uMeshY", (float) shownLevel);
+        if (!skip("water")) waterMesh.draw();
+        // the homestead pond
+        waterS.set("uProtect", 0f);
+        waterS.set("uMeshY", Landscape.POND_LEVEL);
+        waterS.set("uRegion", Landscape.POND_X - 16, Landscape.POND_X + 16, Landscape.POND_Z - 16, Landscape.POND_Z + 16);
+        waterS.set("uTurbid", 0.25f);
+        if (!skip("water")) waterMesh.draw();
+        waterS.set("uRegion", 0f, 0f, 0f, 0f);
+        // the river coming down from the hills
+        waterS.set("uMeshY", -999f);
+        waterS.set("uYAdd", (float) (riverSwell * 1.5));
+        waterS.set("uFlow", 0f, 2.2f);
+        waterS.set("uTurbid", (float) (0.2 + riverSwell * 0.6));
+        if (!skip("water")) riverMesh.draw();
+        waterS.set("uFlow", 0f, 0f);
+
+        // rain, hill rain curtains and sprite particles
+        common(weather.curtainShader(), cam);
+        weather.drawCurtains(cam, upRain);
+        common(weather.rainShader(), cam);
+        if (!overlay) weather.drawRain(cam, farmRain, 0.5 + storm * 0.9, 0.15);
+        weather.drawParticles(cam, particles);
         glDepthMask(true);
         glDisable(GL_BLEND);
-    }
 
-    private void buildDynamic(Camera cam, Settings st, Target hl) {
-        mbO.clear(); mbT.clear();
-        if (state == null || season == null) return;
-        field();
-        bund();
-        rahim();
-        sacks();
-        sun();
-        satellite();
-        particlesMesh();
-        if (hl != null && hl.type() != TargetType.NONE) outline(hl);
-
-        lake();
-        flood();
-        river();
-        if (st.clouds) clouds();
-        rain(cam);
-    }
-
-    // --- opaque pieces
-
-    private void field() {
-        boolean dead = !state.alive, stubble = state.harvested && state.alive;
-        float tr = dead ? 0.55f : 1f, tg = dead ? 0.52f : 1f, tb = dead ? 0.5f : 1f;
-        if (state.flooded) { tr *= 0.8f; tg *= 0.85f; tb *= 0.95f; }
-        Tile tile = stubble ? Tile.STUBBLE : Tile.FARMLAND;
-        for (int z = 0; z < Terrain.FIELD; z++) for (int x = 0; x < Terrain.FIELD; x++)
-            mbO.flatTop(x, 1f, z, 1, 1, tile, tr, tg, tb, 1);
-        float ch = cropHeight();
-        if (!state.alive) ch = 0.55f;
-        if (ch <= 0 || (state.harvested && state.alive)) return;
-        Tile crop = !state.alive ? Tile.CROP_DEAD : state.maturity < 0.25 ? Tile.CROP0 : state.maturity < 0.6 ? Tile.CROP1 : state.maturity < 0.9 ? Tile.CROP2 : Tile.CROP3;
-        float sway = (float) Math.sin(time * 1.4) * 0.0f;
-        for (int z = 0; z < Terrain.FIELD; z++) for (int x = 0; x < Terrain.FIELD; x++)
-            for (int sx = 0; sx < 2; sx++) for (int sz = 0; sz < 2; sz++) {
-                float jx = ((x * 7 + z * 13 + sx * 3 + sz * 5) % 5 - 2) * 0.03f;
-                mbO.cross(x + 0.27f + sx * 0.46f + jx + sway, 1f, z + 0.27f + sz * 0.46f - jx, 0.66f, ch, crop, 1, 1, 1, 1);
-            }
-    }
-
-    private void bund() {
-        float grow = (float) (1 - Math.pow(1 - bundGrow, 3));
-        for (int row = 0; row < bundBlocks; row++) {
-            float hgt = row == bundBlocks - 1 ? Math.max(0.05f, grow) : 1f;
-            boolean top = row == bundBlocks - 1;
-            for (int x = Terrain.PLAIN_X0; x < Terrain.PLAIN_X1; x++) {
-                int faces = FACE_N | FACE_S;
-                if (top) faces |= FACE_TOP;
-                if (x == Terrain.PLAIN_X0) faces |= FACE_W;
-                if (x == Terrain.PLAIN_X1 - 1) faces |= FACE_E;
-                mbO.box(x, 1 + row, Terrain.BUND_Z, 1, hgt, 1, Tile.MUD_BRICK, Tile.MUD_BRICK, Tile.MUD_BRICK, 1, 1, 1, 1, faces);
-            }
-        }
-    }
-
-    private void rahim() {
-        float x = 15.5f, y = Terrain.MOUND_TOP, z = 9.3f;
-        boolean warn = state.status.equals("warning") && !state.harvested && state.alive;
-        boolean cheer = state.harvested && state.yieldPct > 0.4;
-        boolean sad = !state.alive;
-        float wave = warn ? (float) (Math.sin(time * 9) * 0.5 + 0.5) : 0;
-        mbO.box(x - 0.24f, y, z - 0.12f, 0.2f, 0.62f, 0.24f, Tile.PANTS, 1, 1, 1, 1);
-        mbO.box(x + 0.04f, y, z - 0.12f, 0.2f, 0.62f, 0.24f, Tile.PANTS, 1, 1, 1, 1);
-        mbO.box(x - 0.27f, y + 0.62f, z - 0.15f, 0.54f, 0.72f, 0.3f, Tile.SHIRT, 1, 1, 1, 1);
-        float armY = (cheer || warn ? y + 0.9f + (cheer ? 0.35f : wave * 0.35f) : y + 0.62f), armH = cheer || warn ? 0.7f : 0.7f;
-        mbO.box(x - 0.47f, armY, z - 0.1f, 0.2f, armH, 0.2f, Tile.SKIN, 1, 1, 1, 1);
-        mbO.box(x + 0.27f, cheer ? armY : (warn ? y + 0.9f + (1 - wave) * 0.35f : armY), z - 0.1f, 0.2f, armH, 0.2f, Tile.SKIN, 1, 1, 1, 1);
-        float hy = y + 1.34f + (sad ? -0.03f : 0);
-        mbO.box(x - 0.23f, hy, z - 0.22f, 0.46f, 0.46f, 0.44f, Tile.SKIN, Tile.SKIN, Tile.SKIN, 1, 1, 1, 1, FACE_ALL);
-        mbO.box(x - 0.24f, hy + 0.38f, z - 0.23f, 0.48f, 0.1f, 0.46f, Tile.HAIR, 1, 1, 1, 1);
-        float[] uv = Tile.FACE.uv();
-        mbO.quad(x - 0.23f, hy, z + 0.222f, x + 0.23f, hy, z + 0.222f, x + 0.23f, hy + 0.4f, z + 0.222f, x - 0.23f, hy + 0.4f, z + 0.222f, uv, 1, 1, 1, 1);
-    }
-
-    private void sacks() {
-        if (!state.harvested || state.yieldPct <= 0) return;
-        int n = Math.max(1, (int) Math.round(state.yieldPct * 8));
-        for (int i = 0; i < n; i++) {
-            float sx = 13.2f + (i % 4) * 0.8f, sz = 10.55f - (i / 4) * 0.0f;
-            sz = Terrain.MOUND_Z1 - 0.7f + (i / 4) * -0.0f;
-            float xx = 13.0f + (i % 4) * 0.85f, zz = 8.45f + (i / 4) * 0.75f;
-            mbO.box(xx, Terrain.MOUND_TOP, zz, 0.65f, 0.75f, 0.55f, Tile.SACK, 1, 1, 1, 1);
-        }
-    }
-
-    private void sun() {
-        mbO.box(70, 95, -40, 10, 10, 10, Tile.WHITE, 1.0f, 0.93f, 0.55f, 1f);
-    }
-
-    private float[] satPos() {
-        double a = time * 0.12;
-        return new float[]{(float) (4 + Math.cos(a) * 38), (float) (66 + Math.sin(a * 3) * 3), (float) (-26 + Math.sin(a) * 26)};
-    }
-
-    private void satellite() {
-        float[] p = satPos();
-        mbO.box(p[0] - 0.9f, p[1] - 0.9f, p[2] - 0.9f, 1.8f, 1.8f, 1.8f, Tile.METAL, 1, 1, 1, 1);
-        mbO.box(p[0] - 5.2f, p[1] - 0.12f, p[2] - 1.0f, 4.0f, 0.24f, 2.0f, Tile.SOLAR, 1, 1, 1, 1);
-        mbO.box(p[0] + 1.2f, p[1] - 0.12f, p[2] - 1.0f, 4.0f, 0.24f, 2.0f, Tile.SOLAR, 1, 1, 1, 1);
-        mbO.box(p[0] - 0.3f, p[1] + 0.9f, p[2] - 0.3f, 0.6f, 0.6f, 0.6f, Tile.WHITE, 0.9f, 0.9f, 1f, 1);
-        // scanning beam straight down; colour follows the scout status
-        float r = 0.6f, g = 0.9f, b = 1f, a = 0.20f;
-        if (state.status.equals("watch")) { r = 1f; g = 0.75f; b = 0.25f; a = 0.34f; }
-        if (state.status.equals("warning")) { r = 1f; g = 0.3f; b = 0.25f; a = 0.42f + (float) Math.sin(time * 8) * 0.12f; }
-        int gx = (int) Math.floor(p[0]), gz = (int) Math.floor(p[2]);
-        float ground = Math.max(terrain.height(gx, gz), 0.5f);
-        mbT.box(p[0] - 1.1f, ground, p[2] - 1.1f, 2.2f, p[1] - ground - 0.9f, 2.2f, Tile.BEAM, Tile.BEAM, Tile.BEAM, r, g, b, a, FACE_N | FACE_S | FACE_E | FACE_W);
-    }
-
-    private void particlesMesh() {
-        for (float[] q : particles) {
-            float s = 0.12f * Math.min(1, q[6] * 2);
-            mbO.box(q[0] - s / 2, q[1] - s / 2, q[2] - s / 2, s, s, s, Tile.WHITE, q[7], q[8], q[9], 1);
-        }
-    }
-
-    private void outline(Target t) {
-        float x0, y0, z0, x1, y1, z1;
-        if (t.type() == TargetType.BUND) { x0 = t.x(); y0 = t.y(); z0 = t.z(); x1 = x0 + 1; y1 = y0 + 1; z1 = z0 + 1; }
-        else { x0 = t.x(); y0 = 1; z0 = t.z(); x1 = x0 + 1; y1 = 1 + Math.max(0.5f, cropHeight()); z1 = z0 + 1; }
-        float e = 0.012f, w = 0.035f;
-        x0 -= e; y0 -= e; z0 -= e; x1 += e; y1 += e; z1 += e;
-        float[] c = {0.05f, 0.05f, 0.05f};
-        for (float y : new float[]{y0, y1 - w}) {
-            mbO.box(x0, y, z0, x1 - x0, w, w, Tile.WHITE, c[0], c[1], c[2], 1);
-            mbO.box(x0, y, z1 - w, x1 - x0, w, w, Tile.WHITE, c[0], c[1], c[2], 1);
-            mbO.box(x0, y, z0, w, w, z1 - z0, Tile.WHITE, c[0], c[1], c[2], 1);
-            mbO.box(x1 - w, y, z0, w, w, z1 - z0, Tile.WHITE, c[0], c[1], c[2], 1);
-        }
-        for (float x : new float[]{x0, x1 - w}) for (float z : new float[]{z0, z1 - w})
-            mbO.box(x, y0, z, w, y1 - y0, w, Tile.WHITE, c[0], c[1], c[2], 1);
-    }
-
-    // --- transparent pieces
-
-    private void lake() {
-        if (shownLevel <= 0.02) return;
-        float y = (float) lakeSurfaceY();
-        Tile wt = Tile.water(time);
-        for (int z = Terrain.LAKE_Z0; z < Terrain.BUND_Z; z++) for (int x = Terrain.PLAIN_X0; x < Terrain.PLAIN_X1; x++)
-            mbT.flatTop(x, y, z, 1, 1, wt, 1, 1, 1, 0.86f);
-        float top = bundTopY();
-        if (y > top) {   // water standing higher than the bund: show the wall of water against it
-            for (int x = Terrain.PLAIN_X0; x < Terrain.PLAIN_X1; x++)
-                for (float yy = top; yy < y; yy += 1) {
-                    float h1 = Math.min(y, yy + 1);
-                    mbT.quad(x, yy, Terrain.BUND_Z, x + 1, yy, Terrain.BUND_Z, x + 1, h1, Terrain.BUND_Z, x, h1, Terrain.BUND_Z, wt.uv(), 0.9f, 0.9f, 0.9f, 0.8f);
-                }
-        }
-    }
-
-    private void flood() {
-        if (shownFlood <= 0.05) return;
-        float y = (float) (1 + shownFlood);
-        Tile wt = Tile.water(time + 0.3);
-        for (int z = Terrain.BUND_Z + 1; z < Terrain.PLAIN_Z1; z++) for (int x = Terrain.PLAIN_X0; x < Terrain.PLAIN_X1; x++) {
-            if (terrain.height(x, z) >= y) continue;
-            mbT.flatTop(x, y, z, 1, 1, wt, 1, 1, 1, 0.82f);
-        }
-    }
-
-    private void river() {
-        float y = (float) (-0.4 + riverSwell * 1.3);
-        Tile wt = Tile.water(time * 1.5);
-        for (int z = -60; z < Terrain.LAKE_Z0; z++) for (int x = (int) Terrain.RIVER_X0; x < Terrain.RIVER_X1; x++)
-            if (terrain.height(x, z) < y) mbT.flatTop(x, y, z, 1, 1, wt, 1, 1, 1, 0.85f);
-    }
-
-    private void clouds() {
-        float dark = (float) (1 - storm * 0.55);
-        for (int c = 0; c < CLOUD_COUNT; c++) {
-            if (c >= 18 && farmRain < 0.12) continue;
-            float cx = clouds[c][0], cy = clouds[c][1], cz = clouds[c][2], s = clouds[c][3];
-            int n = 3 + c % 3;
-            for (int k = 0; k < n; k++) {
-                float ox = (k - n / 2f) * s * 0.9f, oz = ((k * 7 + c) % 3 - 1) * s * 0.6f;
-                mbT.box(cx + ox, cy + (k % 2) * 0.8f, cz + oz, s * 1.4f, 2.2f, s * 1.0f, Tile.CLOUD, dark, dark, Math.min(1f, dark * 1.05f), 0.92f);
-            }
-        }
-    }
-
-    private void rain(Camera cam) {
-        int up = (int) (900 * upRain), fm = (int) (700 * farmRain);
-        for (int i = 0; i < up; i++) drop(i);
-        for (int i = 0; i < fm; i++) drop(900 + i);
-    }
-
-    private void drop(int i) {
-        float x = dropX[i], y = dropY[i], z = dropZ[i];
-        mbT.cross(x, y, z, 0.18f, 1.6f, Tile.RAIN, 1, 1, 1, 0.7f);
+        // resolve + post
+        if (resolveFbo != sceneFbo) sceneFbo.blitTo(resolveFbo);
+        post.run(resolveFbo, fbW, fbH, atmo.exposure, st.bloom ? 0.045f : 0f, 1.0f, (float) time, 0.55f);
+        glEnable(GL_DEPTH_TEST);
     }
 
     public void destroy() {
-        staticMesh.destroy(); dynOpaque.destroy(); dynTrans.destroy();
+        terrainMesh.destroy(); waterMesh.destroy(); dikeMesh.destroy();
     }
 }

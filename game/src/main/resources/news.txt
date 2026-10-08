@@ -1,20 +1,27 @@
 HOLD THE FIELD 1.0.0
 NASA Space Apps Challenge 2026 - Field Shift
 
+WHAT IT IS
+You farm rice in the Sunamganj haor. Replay a real season day by day, read the NASA satellite
+data, and decide how to adapt: which rice to plant, when to transplant, whether to raise the
+embankment, when to harvest. Then see what each choice would have been worth.
+
 NEW IN 1.0
-- Full voxel world: walk, jump and fly around Rahim's farm in the Sunamganj haor.
-- Satellite Scout dashboard with interactive charts (E key or the spyglass).
-- Raise the bund with mud bricks, harvest with the sickle, watch the flood arrive.
-- Worlds are saved automatically. Replay a season or watch "Rahim's way".
-- Advancements, a season report and a chart against the farmer who got no warning.
-- Rebindable keys, video and sound options, F3 debug screen, F2 screenshots.
+- A realistic 3D farm: physically-based lighting, shadows, an atmospheric sky, flowing water,
+  thousands of animated rice plants, weather and thunderstorms.
+- Plan the season: short- or long-duration rice, and the transplanting date.
+- NASA satellite view with the farm and the upstream hills labelled with real coordinates.
+- Scout dashboard with interactive charts of rain, soil wetness, temperature and the water level.
+- A debrief that compares you with the farmer who got no warning and tests every plan on the
+  same real weather. Save it as a report.
+- Talk to Rahim (right-click) and earn advancements.
 
 REAL NASA DATA
 The game ships with SAMPLE data so it always starts. Open the "NASA Data" tab and press
-"Update NASA data" to download the real 2017 season from NASA POWER. You need an internet
+"Update NASA data" to download the real 2016-17 season from NASA POWER. You need an internet
 connection once; after that the game works offline.
 
 TIPS
 - Rain in the Meghalaya hills reaches the haor about two days later.
-- Short-duration rice ripens sooner. You can harvest from 80% maturity.
-- Double-tap Space to fly up and see over the bund.
+- Short-duration rice ripens sooner but yields less. You can harvest from 80% maturity.
+- Double-tap Space to fly up and see over the embankment. Press M for the satellite view.

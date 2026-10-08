@@ -14,6 +14,8 @@ Rahim farms rice in the Sunamganj haor. His father taught him the sky always war
 
 NASA satellites *did* see the rain building in the hills upstream. In this game you replay that real season, day by day, on real NASA data. The **Satellite Scout** shows what NASA measured, and you decide: raise the bund, plant a faster variety, or harvest early. Then compare your result with *Rahim's way*: same field, same rain, no warning.
 
+How the game answers the challenge, what players learn and what is still missing: [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md).
+
 ## Who it helps
 
 - **Students** in farming regions, learning how climate is changing their land
@@ -33,7 +35,7 @@ How the data becomes gameplay, and every simplification: [`docs/DATA.md`](docs/D
 
 ## Run it
 
-**The game (Java, Minecraft-style, with launcher, menus and settings)** lives in [`game/`](game/README.md):
+**The game (Java, realistic 3D, with launcher, menus and settings)** lives in [`game/`](game/README.md):
 
 ```bash
 cd game && mvn package && java -jar target/hold-the-field.jar
@@ -44,7 +46,7 @@ cd game && mvn package && java -jar target/hold-the-field.jar
 ```bash
 python3 -m http.server 5173     # then open http://localhost:5173
 node --test                     # run the simulation tests
-python3 data-pipeline/fetch_power.py --region haor --start 20170101 --end 20170430 --out data/haor-2017.json
+python3 data-pipeline/fetch_power.py --region haor --start 20161201 --end 20170430 --out data/haor-2017.json
 node scripts/calibrate.mjs data/haor-2017.json --target YYYY-MM-DD   # fit the water model to the documented flood date
 ```
 

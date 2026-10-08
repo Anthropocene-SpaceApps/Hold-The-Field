@@ -16,41 +16,34 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 /**
- * Batched immediate-mode GUI renderer. Coordinates are GUI pixels with the origin at the top-left;
- * colours are 0xAARRGGBB. Switching texture or clip rectangle flushes the batch.
+ * Batched GUI renderer. Coordinates are GUI units with the origin at the top-left; colours are 0xAARRGGBB.
+ * Shapes (rounded rectangles, rings, soft shadows) are drawn as anti-aliased signed-distance fields, so they stay
+ * crisp at any GUI scale. Switching texture or clip rectangle flushes the batch.
  */
 public final class Renderer2D {
-    private static final int STRIDE = 8;
-    private static final String VS = """
-            #version 330 core
-            layout(location=0) in vec2 pos; layout(location=1) in vec2 uv; layout(location=2) in vec4 col;
-            uniform mat4 proj; out vec2 vUv; out vec4 vCol;
-            void main(){ vUv = uv; vCol = col; gl_Position = proj * vec4(pos, 0.0, 1.0); }""";
-    private static final String FS = """
-            #version 330 core
-            in vec2 vUv; in vec4 vCol; uniform sampler2D tex; out vec4 frag;
-            void main(){ frag = texture(tex, vUv) * vCol; }""";
+    private static final int STRIDE = 15;     // pos2 uv2 col4 local2 shape4 mode1
+    /** The GUI is laid out for a canvas this tall; the scale adapts it to the real window. */
+    public static final float DESIGN_HEIGHT = 720f;
 
-    private final Shader shader = new Shader(VS, FS);
+    private final Shader shader = ShaderLoader.load("ui");
     private final int vao, vbo;
-    private float[] buf = new float[STRIDE * 6 * 2048];
+    private float[] buf = new float[STRIDE * 6 * 1024];
     private int n;                               // floats used
     private int currentTex = -1;
-    private final FloatBuffer staging = BufferUtils.createFloatBuffer(STRIDE * 6 * 8192);
+    private final FloatBuffer staging = BufferUtils.createFloatBuffer(STRIDE * 6 * 4096);
     private final Matrix4f proj = new Matrix4f();
     private final int whiteTex;
-    private final int atlasTex;
-    public final Font font, bold;
+    public final Font font, bold, mono;
 
-    public float scale = 2;
+    public float scale = 1;
     public int guiW, guiH;
     private int fbH;
     private final List<float[]> clips = new ArrayList<>();
 
-    public Renderer2D(int atlasTex) {
-        this.atlasTex = atlasTex;
-        font = new Font("/fonts/DejaVuSansMono.ttf");
-        bold = new Font("/fonts/DejaVuSansMono-Bold.ttf");
+    public Renderer2D() {
+        font = new Font("/fonts/DejaVuSans.ttf");
+        bold = new Font("/fonts/DejaVuSans-Bold.ttf");
+        mono = new Font("/fonts/DejaVuSansMono.ttf");
         whiteTex = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, whiteTex);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, new int[]{0xFFFFFFFF});
@@ -61,19 +54,23 @@ public final class Renderer2D {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, (long) staging.capacity() * 4, GL_STREAM_DRAW);
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, STRIDE * 4, 0);
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, STRIDE * 4, 8);
-        glVertexAttribPointer(2, 4, GL_FLOAT, false, STRIDE * 4, 16);
-        glEnableVertexAttribArray(0); glEnableVertexAttribArray(1); glEnableVertexAttribArray(2);
+        int[] sizes = {2, 2, 4, 2, 4, 1};
+        int off = 0;
+        for (int i = 0; i < sizes.length; i++) {
+            glVertexAttribPointer(i, sizes[i], GL_FLOAT, false, STRIDE * 4, off);
+            glEnableVertexAttribArray(i);
+            off += sizes[i] * 4;
+        }
         glBindVertexArray(0);
     }
 
-    /** Pick the GUI scale: auto = largest integer keeping at least 320x240 GUI pixels. */
+    /** GUI scale for a framebuffer: the design canvas (720 units tall) scaled to the window, times the user option. */
     public static float autoScale(int fbW, int fbH, int setting) {
-        if (setting > 0) return setting;
-        int s = 1;
-        while (s < 6 && fbW / (s + 1) >= 400 && fbH / (s + 1) >= 270) s++;
-        return s;
+        float[] factor = {1f, 0.75f, 0.9f, 1.1f, 1.25f, 1.5f};
+        float base = Math.max(0.4f, fbH / DESIGN_HEIGHT);
+        // very wide or very narrow windows: never let the canvas get narrower than 900 units
+        float s = base * factor[Math.max(0, Math.min(factor.length - 1, setting))];
+        return Math.min(s, fbW / 900f);
     }
 
     public void begin(int fbW, int fbH, float scale) {
@@ -88,8 +85,8 @@ public final class Renderer2D {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         proj.identity().ortho(0, guiW, guiH, 0, -1, 1);
         shader.use();
-        shader.set("proj", proj);
-        shader.set("tex", 0);
+        shader.set("uProj", proj);
+        shader.set("uTex", 0);
         currentTex = -1;
         clips.clear();
         glDisable(GL_SCISSOR_TEST);
@@ -111,8 +108,9 @@ public final class Renderer2D {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         int off = 0;
-        while (off < n) {                                // upload in pieces no bigger than the VBO
-            int chunk = Math.min(n - off, staging.capacity() / (STRIDE * 6) * (STRIDE * 6));
+        int piece = staging.capacity() / (STRIDE * 6) * (STRIDE * 6);
+        while (off < n) {
+            int chunk = Math.min(n - off, piece);
             staging.clear();
             staging.put(buf, off, chunk).flip();
             glBufferSubData(GL_ARRAY_BUFFER, 0, staging);
@@ -123,16 +121,32 @@ public final class Renderer2D {
         n = 0;
     }
 
-    private void v(float x, float y, float u, float v, int c) {
+    private void v(float x, float y, float u, float vv, int c, float lx, float ly, float hw, float hh, float rad, float param, float mode) {
         if (n + STRIDE > buf.length) buf = Arrays.copyOf(buf, buf.length * 2);
-        buf[n++] = x; buf[n++] = y; buf[n++] = u; buf[n++] = v;
-        buf[n++] = ((c >> 16) & 255) / 255f; buf[n++] = ((c >> 8) & 255) / 255f;
-        buf[n++] = (c & 255) / 255f; buf[n++] = ((c >>> 24) & 255) / 255f;
+        buf[n++] = x; buf[n++] = y; buf[n++] = u; buf[n++] = vv;
+        buf[n++] = ((c >> 16) & 255) / 255f; buf[n++] = ((c >> 8) & 255) / 255f; buf[n++] = (c & 255) / 255f; buf[n++] = ((c >>> 24) & 255) / 255f;
+        buf[n++] = lx; buf[n++] = ly; buf[n++] = hw; buf[n++] = hh; buf[n++] = rad; buf[n++] = param; buf[n++] = mode;
     }
 
     private void quad(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, int c00, int c10, int c11, int c01) {
-        v(x0, y0, u0, v0, c00); v(x1, y0, u1, v0, c10); v(x1, y1, u1, v1, c11);
-        v(x0, y0, u0, v0, c00); v(x1, y1, u1, v1, c11); v(x0, y1, u0, v1, c01);
+        v(x0, y0, u0, v0, c00, 0, 0, 0, 0, 0, 0, 0); v(x1, y0, u1, v0, c10, 0, 0, 0, 0, 0, 0, 0); v(x1, y1, u1, v1, c11, 0, 0, 0, 0, 0, 0, 0);
+        v(x0, y0, u0, v0, c00, 0, 0, 0, 0, 0, 0, 0); v(x1, y1, u1, v1, c11, 0, 0, 0, 0, 0, 0, 0); v(x0, y1, u0, v1, c01, 0, 0, 0, 0, 0, 0, 0);
+    }
+
+    /** One quad (grown by pad on every side) carrying signed-distance shape data. */
+    private void shape(float x, float y, float w, float h, float r, float param, float pad, int c, float mode) {
+        shape(x, y, w, h, r, param, pad, c, c, mode);
+    }
+
+    private void shape(float x, float y, float w, float h, float r, float param, float pad, int c, int cb, float mode) {
+        float hw = w / 2, hh = h / 2, cx = x + hw, cy = y + hh;
+        r = Math.min(r, Math.min(hw, hh));
+        float x0 = x - pad, y0 = y - pad, x1 = x + w + pad, y1 = y + h + pad;
+        bind(whiteTex);
+        v(x0, y0, 0, 0, c, x0 - cx, y0 - cy, hw, hh, r, param, mode); v(x1, y0, 0, 0, c, x1 - cx, y0 - cy, hw, hh, r, param, mode);
+        v(x1, y1, 0, 0, cb, x1 - cx, y1 - cy, hw, hh, r, param, mode);
+        v(x0, y0, 0, 0, c, x0 - cx, y0 - cy, hw, hh, r, param, mode); v(x1, y1, 0, 0, cb, x1 - cx, y1 - cy, hw, hh, r, param, mode);
+        v(x0, y1, 0, 0, cb, x0 - cx, y1 - cy, hw, hh, r, param, mode);
     }
 
     // ---------------------------------------------------------------- shapes
@@ -140,6 +154,18 @@ public final class Renderer2D {
     public void rect(float x, float y, float w, float h, int c) {
         bind(whiteTex);
         quad(x, y, x + w, y + h, 0, 0, 1, 1, c, c, c, c);
+    }
+
+    public void roundRect(float x, float y, float w, float h, float radius, int c) { shape(x, y, w, h, radius, 0, 2, c, 1); }
+
+    /** Rounded rectangle with a vertical colour gradient. */
+    public void roundGradient(float x, float y, float w, float h, float radius, int top, int bottom) { shape(x, y, w, h, radius, 0, 2, top, bottom, 1); }
+
+    public void roundRing(float x, float y, float w, float h, float radius, float thickness, int c) { shape(x, y, w, h, radius, thickness, 2, c, 2); }
+
+    /** Soft drop shadow: draw it before the shape it belongs to. */
+    public void shadow(float x, float y, float w, float h, float radius, float soft, int c) {
+        shape(x, y, w, h, radius, soft, soft + 2, c, 3);
     }
 
     public void gradientV(float x, float y, float w, float h, int top, int bottom) {
@@ -156,43 +182,36 @@ public final class Renderer2D {
         rect(x, y, w, t, c); rect(x, y + h - t, w, t, c); rect(x, y + t, t, h - 2 * t, c); rect(x + w - t, y + t, t, h - 2 * t, c);
     }
 
-    /** Thick line as a rotated quad. */
+    /** Line with round-ish ends as a rotated quad; anti-aliased by MSAA. */
     public void line(float x1, float y1, float x2, float y2, float thick, int c) {
         float dx = x2 - x1, dy = y2 - y1, len = (float) Math.hypot(dx, dy);
         if (len < 1e-4f) return;
         float nx = -dy / len * thick / 2, ny = dx / len * thick / 2;
         bind(whiteTex);
-        v(x1 + nx, y1 + ny, 0, 0, c); v(x2 + nx, y2 + ny, 0, 0, c); v(x2 - nx, y2 - ny, 0, 0, c);
-        v(x1 + nx, y1 + ny, 0, 0, c); v(x2 - nx, y2 - ny, 0, 0, c); v(x1 - nx, y1 - ny, 0, 0, c);
+        v(x1 + nx, y1 + ny, 0, 0, c, 0, 0, 0, 0, 0, 0, 0); v(x2 + nx, y2 + ny, 0, 0, c, 0, 0, 0, 0, 0, 0, 0); v(x2 - nx, y2 - ny, 0, 0, c, 0, 0, 0, 0, 0, 0, 0);
+        v(x1 + nx, y1 + ny, 0, 0, c, 0, 0, 0, 0, 0, 0, 0); v(x2 - nx, y2 - ny, 0, 0, c, 0, 0, 0, 0, 0, 0, 0); v(x1 - nx, y1 - ny, 0, 0, c, 0, 0, 0, 0, 0, 0, 0);
     }
 
-    public void circle(float cx, float cy, float r, int c) {
+    public void circle(float cx, float cy, float r, int c) { shape(cx - r, cy - r, 2 * r, 2 * r, r, 0, 2, c, 1); }
+
+    public void ring(float cx, float cy, float r, float thickness, int c) { shape(cx - r, cy - r, 2 * r, 2 * r, r, thickness, 2, c, 2); }
+
+    /** Filled triangle (icons, arrows). */
+    public void triangle(float x1, float y1, float x2, float y2, float x3, float y3, int c) {
         bind(whiteTex);
-        int seg = 20;
-        for (int i = 0; i < seg; i++) {
-            double a0 = i * Math.PI * 2 / seg, a1 = (i + 1) * Math.PI * 2 / seg;
-            v(cx, cy, 0, 0, c);
-            v(cx + (float) Math.cos(a0) * r, cy + (float) Math.sin(a0) * r, 0, 0, c);
-            v(cx + (float) Math.cos(a1) * r, cy + (float) Math.sin(a1) * r, 0, 0, c);
-        }
+        v(x1, y1, 0, 0, c, 0, 0, 0, 0, 0, 0, 0); v(x2, y2, 0, 0, c, 0, 0, 0, 0, 0, 0, 0); v(x3, y3, 0, 0, c, 0, 0, 0, 0, 0, 0, 0);
     }
 
-    /** Draw an atlas tile (block face or item icon). */
-    public void tile(Tile t, float x, float y, float w, float h, int tint) {
-        bind(atlasTex);
-        float[] uv = t.uv();
-        quad(x, y, x + w, y + h, uv[0], uv[1], uv[2], uv[3], tint, tint, tint, tint);
+    /** One slice of a filled area chart: sloped top edge down to a flat baseline, with a vertical colour fade. Slices tile exactly. */
+    public void areaSegment(float x0, float yTop0, float x1, float yTop1, float yBase, int topColor, int bottomColor) {
+        bind(whiteTex);
+        v(x0, yTop0, 0, 0, topColor, 0, 0, 0, 0, 0, 0, 0); v(x1, yTop1, 0, 0, topColor, 0, 0, 0, 0, 0, 0, 0); v(x1, yBase, 0, 0, bottomColor, 0, 0, 0, 0, 0, 0, 0);
+        v(x0, yTop0, 0, 0, topColor, 0, 0, 0, 0, 0, 0, 0); v(x1, yBase, 0, 0, bottomColor, 0, 0, 0, 0, 0, 0, 0); v(x0, yBase, 0, 0, bottomColor, 0, 0, 0, 0, 0, 0, 0);
     }
 
-    /** Tile with a pixel-sharp edge: used for the panorama dirt background. */
-    public void tileRepeat(Tile t, float x, float y, float w, float h, float cell, int tint) {
-        for (float yy = y; yy < y + h; yy += cell)
-            for (float xx = x; xx < x + w; xx += cell) {
-                float cw = Math.min(cell, x + w - xx), ch = Math.min(cell, y + h - yy);
-                bind(atlasTex);
-                float[] uv = t.uv();
-                quad(xx, yy, xx + cw, yy + ch, uv[0], uv[1], uv[0] + (uv[2] - uv[0]) * cw / cell, uv[1] + (uv[3] - uv[1]) * ch / cell, tint, tint, tint, tint);
-            }
+    /** Polyline drawn as connected thick segments. */
+    public void polyline(float[] xy, float thick, int c) {
+        for (int i = 0; i + 3 < xy.length; i += 2) line(xy[i], xy[i + 1], xy[i + 2], xy[i + 3], thick, c);
     }
 
     // ---------------------------------------------------------------- text
@@ -211,12 +230,16 @@ public final class Renderer2D {
     public void text(String s, float x, float y, float size, int color, boolean shadow, boolean boldFace) {
         Font f = boldFace ? bold : font;
         bind(f.texture);
-        if (shadow) {
-            int sh = (color & 0xFF000000) | ((color >> 2) & 0x3F3F3F);
-            f.emit(this, s, x + Math.max(1, size / 9), y + Math.max(1, size / 9), size, sh);
-        }
+        if (shadow) f.emit(this, s, x + Math.max(0.8f, size / 16), y + Math.max(0.8f, size / 16), size, (0x99 << 24));
         f.emit(this, s, x, y, size, color);
     }
+
+    public void textMono(String s, float x, float y, float size, int color) {
+        bind(mono.texture);
+        mono.emit(this, s, x, y, size, color);
+    }
+
+    public float monoWidth(String s, float size) { return mono.width(s, size); }
 
     public void textCentered(String s, float cx, float y, float size, int color, boolean shadow, boolean boldFace) {
         text(s, cx - textWidth(s, size, boldFace) / 2, y, size, color, shadow, boldFace);
@@ -227,13 +250,15 @@ public final class Renderer2D {
     }
 
     /** Greedy word wrap into lines no wider than maxW. */
-    public List<String> wrap(String s, float maxW, float size) {
+    public List<String> wrap(String s, float maxW, float size) { return wrap(s, maxW, size, false); }
+
+    public List<String> wrap(String s, float maxW, float size, boolean boldFace) {
         List<String> lines = new ArrayList<>();
         for (String para : s.split("\n", -1)) {
             StringBuilder line = new StringBuilder();
             for (String word : para.split(" ")) {
                 String trial = line.isEmpty() ? word : line + " " + word;
-                if (textWidth(trial, size) > maxW && !line.isEmpty()) { lines.add(line.toString()); line = new StringBuilder(word); }
+                if (textWidth(trial, size, boldFace) > maxW && !line.isEmpty()) { lines.add(line.toString()); line = new StringBuilder(word); }
                 else line = new StringBuilder(trial);
             }
             lines.add(line.toString());
@@ -268,4 +293,10 @@ public final class Renderer2D {
 
     public static int argb(int a, int r, int g, int b) { return (a << 24) | (r << 16) | (g << 8) | b; }
     public static int withAlpha(int c, float alpha) { return (Math.round(((c >>> 24) & 255) * alpha) << 24) | (c & 0xFFFFFF); }
+
+    public static int lerp(int a, int b, float t) {
+        int aa = (int) (((a >>> 24) & 255) * (1 - t) + ((b >>> 24) & 255) * t), ar = (int) (((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t);
+        int ag = (int) (((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t), ab = (int) ((a & 255) * (1 - t) + (b & 255) * t);
+        return (aa << 24) | (ar << 16) | (ag << 8) | ab;
+    }
 }

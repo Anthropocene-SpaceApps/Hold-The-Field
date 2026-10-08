@@ -14,28 +14,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Saved worlds list: play, create, delete. */
+import static org.anthropocene.htf.ui.Theme.*;
+
+/** Saved farms: continue, start a new season, delete. */
 public final class WorldSelectScreen extends Screen {
     private final List<SaveManager.SaveData> saves = new ArrayList<>();
     private Widget.ListBox<SaveManager.SaveData> list;
     private Widget.Button play, delete;
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("d MMM yyyy HH:mm", Locale.ENGLISH).withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.ENGLISH).withZone(ZoneId.systemDefault());
 
     @Override
     protected void init() {
+        layoutCard(760, 580);
         saves.clear();
         saves.addAll(SaveManager.list());
-        int lw = Math.min(340, w - 20);
         list = add(new Widget.ListBox<>(saves, this::drawRow));
-        list.bounds(w / 2 - lw / 2, 32, lw, h - 32 - 58);
-        list.rowH = 38;
+        list.bounds(cardX + 24, cardY + 96, cardW - 48, cardH - 96 - 84);
+        list.rowH = 68;
         list.onSelect = i -> refresh();
         list.onDouble = i -> playSelected();
-        int bx = w / 2 - 154, by = h - 52;
-        play = button("Play Selected World", bx, by, 150, this::playSelected);
-        button("Create New World", bx + 158, by, 150, () -> { Screen s = new CreateWorldScreen(); s.parent = this; game.setScreen(s); });
-        delete = button("Delete", bx, by + 24, 98, this::askDelete);
-        button("Back", bx + 210, by + 24, 98, () -> game.setScreen(parent));
+        int by = cardY + cardH - 62;
+        button("New Season", cardX + 24, by, 200, () -> open(new PlanSeasonScreen())).primary();
+        play = button("Continue", cardX + 236, by, 160, this::playSelected);
+        delete = button("Delete", cardX + 408, by, 120, this::askDelete);
+        delete.danger = true;
+        button("Back", cardX + cardW - 144, by, 120, () -> game.setScreen(parent));
         refresh();
     }
 
@@ -48,20 +51,24 @@ public final class WorldSelectScreen extends Screen {
     private void drawRow(Renderer2D r, SaveManager.SaveData d, int x, int y, int w, int h, boolean sel, boolean hover) {
         String season = SeasonCatalog.find(d.seasonId).name();
         String mode = d.mode.equals(Session.MODE_RAHIM) ? "Rahim's way" : "Scout mode";
-        r.text(d.name, x, y + 3, 10, 0xFFFFFFFF, true, true);
-        String state = d.ended ? "Finished: " + Math.round(d.yieldPct * 100) + "% harvest" : "Day " + (d.day + 1);
-        r.text(season + "  |  " + mode, x, y + 15, 7.5f, 0xFFB0B0B0);
-        r.text(state + "  |  last played " + WHEN.format(Instant.ofEpochMilli(d.updated)), x, y + 25, 7.5f, d.ended ? 0xFFE0C060 : 0xFF909090);
+        r.text(d.name, x, y + 12, 17, TEXT, false, true);
+        r.text(season + "   |   " + mode + (d.plantDate != null ? "   |   planted " + d.plantDate : ""), x, y + 36, 12, MUTED);
+        String chipText = d.ended ? Math.round(d.yieldPct * 100) + "% harvest" : "Day " + (d.day + 1);
+        float cw = r.textWidth(chipText, 12, true) + 24;
+        Theme.chip(r, x + w - cw, y + 12, cw, 24, d.ended ? (d.yieldPct > 0 ? 0x445BD18A : 0x44FF5D5D) : 0x444DA3FF);
+        r.text(chipText, x + w - cw + 12, y + 17, 12, d.ended ? (d.yieldPct > 0 ? GOOD : BAD) : 0xFFB6D8FF, false, true);
+        r.textRight(WHEN.format(Instant.ofEpochMilli(d.updated)), x + w, y + 40, 11, FAINT, false);
     }
 
     @Override
     public void render(Renderer2D r, int mx, int my) {
         background(r);
-        title(r, "Select World", 11);
+        drawCard(r);
+        heading(r, "Your Farms");
         for (Widget wd : widgets) wd.render(r, mx, my);
         if (saves.isEmpty()) {
-            r.textCentered("No worlds yet.", w / 2f, 62, 10, 0xFFE0E0E0, true, true);
-            r.textCentered("Create one to replay a real NASA season.", w / 2f, 76, 8.5f, 0xFFB0B0B0, true, false);
+            r.textCentered("No farms yet", w / 2f, cardY + 220, 22, TEXT, false, true);
+            r.textCentered("Start a new season to replay a real NASA-measured flood.", w / 2f, cardY + 252, 14, MUTED, false, false);
         }
     }
 
@@ -72,8 +79,8 @@ public final class WorldSelectScreen extends Screen {
             Season season = SeasonCatalog.load(d.seasonId);
             game.startSession(Session.restore(season, d));
         } catch (IOException | RuntimeException e) {
-            game.toastMsg("Could not load world: " + e.getMessage());
-            System.err.println("Could not load world: " + e);
+            game.toastMsg("Could not load farm: " + e.getMessage());
+            System.err.println("Could not load farm: " + e);
         }
     }
 
