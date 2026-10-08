@@ -4,3 +4,6 @@ node_modules/
 *.log
 .env
 __pycache__/
+
+game/target/
+*.class

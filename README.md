@@ -33,7 +33,13 @@ How the data becomes gameplay, and every simplification: [`docs/DATA.md`](docs/D
 
 ## Run it
 
-No install needed.
+**The game (Java, Minecraft-style, with launcher, menus and settings)** lives in [`game/`](game/README.md):
+
+```bash
+cd game && mvn package && java -jar target/hold-the-field.jar
+```
+
+**The web prototype** (the original browser version, kept as a no-install demo) is the rest of this repo. No install needed:
 
 ```bash
 python3 -m http.server 5173     # then open http://localhost:5173

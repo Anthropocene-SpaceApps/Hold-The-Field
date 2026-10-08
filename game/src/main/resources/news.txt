@@ -1,0 +1,20 @@
+HOLD THE FIELD 1.0.0
+NASA Space Apps Challenge 2026 - Field Shift
+
+NEW IN 1.0
+- Full voxel world: walk, jump and fly around Rahim's farm in the Sunamganj haor.
+- Satellite Scout dashboard with interactive charts (E key or the spyglass).
+- Raise the bund with mud bricks, harvest with the sickle, watch the flood arrive.
+- Worlds are saved automatically. Replay a season or watch "Rahim's way".
+- Advancements, a season report and a chart against the farmer who got no warning.
+- Rebindable keys, video and sound options, F3 debug screen, F2 screenshots.
+
+REAL NASA DATA
+The game ships with SAMPLE data so it always starts. Open the "NASA Data" tab and press
+"Update NASA data" to download the real 2017 season from NASA POWER. You need an internet
+connection once; after that the game works offline.
+
+TIPS
+- Rain in the Meghalaya hills reaches the haor about two days later.
+- Short-duration rice ripens sooner. You can harvest from 80% maturity.
+- Double-tap Space to fly up and see over the bund.
