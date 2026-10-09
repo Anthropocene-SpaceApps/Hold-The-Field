@@ -1,5 +1,7 @@
 # Hold the Field: the Java game
 
+Repository: https://github.com/Anthropocene-SpaceApps/Hold-The-Field
+
 A realistic 3D farming game where NASA satellite data is your scout. You walk around Rahim's farm in the
 Sunamganj haor, watch the Satellite Scout, and decide: raise the bund, harvest early, or let the water take the rice.
 Same field, same real rain, replayed day by day.

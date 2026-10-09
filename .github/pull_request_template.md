@@ -8,5 +8,6 @@
 <!-- Required for anything visual -->
 
 ## Tested how
-- [ ] `node --test` passes
-- [ ] Opened the Vercel preview on desktop and phone
+- [ ] `mvn -f game/pom.xml test` passes
+- [ ] `node --test` passes (only if the web prototype changed)
+- [ ] Ran the game and checked the change (launcher → PLAY)

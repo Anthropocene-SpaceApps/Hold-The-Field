@@ -1,10 +1,14 @@
-# Hold the Field *(working title)*
+# Hold the Field
 
-**A strategy game where the climate raids your farm and NASA satellite data is your scout.**
+[![game](https://github.com/Anthropocene-SpaceApps/Hold-The-Field/actions/workflows/game.yml/badge.svg)](https://github.com/Anthropocene-SpaceApps/Hold-The-Field/actions/workflows/game.yml)
 
-NASA Space Apps Challenge 2026 · Chattogram, Bangladesh
+**A farming game where the climate raids your fields and NASA satellite data is your scout.**
+
+NASA Space Apps Challenge 2026 · Chattogram, Bangladesh · **Team Anthropocene**
 **Challenge:** [Field Shift: Adapting Farms with NASA Data](https://www.spaceappschallenge.org/2026/challenges/)
-**Live demo:** _add Vercel link_ · **Video:** _add YouTube link_ · **Team page:** _add NASA team link_
+**Video:** _add YouTube link_ · **Team page:** _add NASA team link_
+
+![Title screen: ripe paddy under a darkening sky](docs/images/title.jpg)
 
 ---
 
@@ -12,15 +16,24 @@ NASA Space Apps Challenge 2026 · Chattogram, Bangladesh
 
 Rahim farms rice in the Sunamganj haor. His father taught him the sky always warns before it takes. In 2017, a flash flood took his harvest days before it was ready, with no warning he could see.
 
-NASA satellites *did* see the rain building in the hills upstream. In this game you replay that real season, day by day, on real NASA data. The **Satellite Scout** shows what NASA measured, and you decide: raise the bund, plant a faster variety, or harvest early. Then compare your result with *Rahim's way*: same field, same rain, no warning.
+NASA satellites *did* see the rain building in the hills upstream. In this game you replay that real season, day by day. You plan it first (which rice, which transplanting date), then farm it with the **Satellite Scout** watching the data. Raise the embankment, harvest early, or watch the water decide. Afterwards the game replays every alternative on the same weather, so the lesson is *what would have worked*, not *you lost*.
 
-How the game answers the challenge, what players learn and what is still missing: [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md).
+Full design, what players learn and what is still missing: [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md).
+
+| | |
+|---|---|
+| ![Plan the season](docs/images/plan-the-season.jpg) | ![Flood warning](docs/images/flood-warning.jpg) |
+| **Plan the season.** Short rice ripens sooner but yields less; the planting date moves the whole schedule. | **The scout speaks.** Rain upstream becomes a warning two days before the water arrives. |
+| ![NASA satellite view](docs/images/satellite-view.jpg) | ![The flood](docs/images/flood.jpg) |
+| **NASA satellite view.** Rain intensity and soil wetness, the farm and the upstream hills at their real coordinates. | **The flood.** Water over the embankment, drowned rice, rain on muddy water. |
+| ![Dashboard](docs/images/dashboard.jpg) | ![Debrief](docs/images/debrief.jpg) |
+| **Scout dashboard.** Interactive charts of everything NASA measured so far. | **Debrief.** Your result against the farmer who got no warning, and every plan on the same real weather. |
 
 ## Who it helps
 
 - **Students** in farming regions, learning how climate is changing their land
-- **Farming families**, seeing why short-duration varieties and early warnings matter
-- **Agricultural extension officers**, who need to *show*, not just tell
+- **Farming families**, seeing why short-duration varieties, planting dates and early warnings matter
+- **Agricultural extension officers**, who need to *show*, not just tell. The debrief exports as a text report and a CSV.
 
 NASA POWER is global, so the same engine works for any farm on Earth by changing a latitude and longitude.
 
@@ -28,26 +41,38 @@ NASA POWER is global, so the same engine works for any farm on Earth by changing
 
 | Dataset | Parameters | Used for |
 |---|---|---|
-| NASA POWER Daily API (community AG) | `PRECTOTCORR` precipitation, `T2M_MAX` max temperature, `GWETROOT` root-zone soil wetness | Daily weather that drives water level, Scout warnings and readings |
+| NASA POWER Daily API (community AG) | `PRECTOTCORR` precipitation, `T2M_MAX` max temperature, `GWETROOT` root-zone soil wetness | Daily weather that drives the water level, scout warnings, the dashboard and the satellite view |
 
 Points: farm 25.07°N 91.40°E (Sunamganj haor); upstream 25.27°N 91.73°E (Cherrapunji/Sohra, Meghalaya).
 How the data becomes gameplay, and every simplification: [`docs/DATA.md`](docs/DATA.md).
 
-## Run it
+> **The repository ships SAMPLE data**, clearly labelled in the game, so it always starts. Replace it with the real season: launcher → **NASA Data** → **Update NASA data** (needs internet once, then works offline).
 
-**The game (Java, realistic 3D, with launcher, menus and settings)** lives in [`game/`](game/README.md):
+## Play it
+
+You need **Java 21** and a GPU with **OpenGL 3.3**. One jar runs on Windows, macOS and Linux.
 
 ```bash
-cd game && mvn package && java -jar target/hold-the-field.jar
+git clone https://github.com/Anthropocene-SpaceApps/Hold-The-Field.git
+cd Hold-The-Field/game
+mvn package
+java -jar target/hold-the-field.jar     # opens the launcher; press PLAY
 ```
 
-**The web prototype** (the original browser version, kept as a no-install demo) is the rest of this repo. No install needed:
+Controls, graphics options and the code layout: [`game/README.md`](game/README.md).
+CI (`.github/workflows/game.yml`) builds the jar and runs the tests on every push.
+
+**The web prototype** (the original browser version, kept as a no-install demo) is the top-level `index.html`, `src/`, `styles/` and `data/`:
 
 ```bash
 python3 -m http.server 5173     # then open http://localhost:5173
-node --test                     # run the simulation tests
+node --test                     # run the prototype's simulation tests
+```
+
+Fetch real data from the command line instead of the launcher:
+
+```bash
 python3 data-pipeline/fetch_power.py --region haor --start 20161201 --end 20170430 --out data/haor-2017.json
-node scripts/calibrate.mjs data/haor-2017.json --target YYYY-MM-DD   # fit the water model to the documented flood date
 ```
 
 ## Team Anthropocene
@@ -63,7 +88,7 @@ node scripts/calibrate.mjs data/haor-2017.json --target YYYY-MM-DD   # fit the w
 
 ## Use of AI
 
-See [`docs/AI_USAGE.md`](docs/AI_USAGE.md). Every AI tool we used is listed there with its purpose.
+See [`docs/AI_USAGE.md`](docs/AI_USAGE.md). Every AI tool we used is listed there with its purpose. All textures, models and sounds in the game are generated by code.
 
 ## License
 
