@@ -6,6 +6,7 @@ in float vT_;
 in float vSeed;
 uniform float uMat;        // 0 young .. 1 ripe
 uniform float uDead;       // 0..1 drowned / dead
+uniform float uWilt;       // 0..1 parched: straw yellow, rolled leaves
 uniform float uPalette;    // 0 rice, 1 grass, 2 reed
 out vec4 frag;
 void main() {
@@ -21,10 +22,13 @@ void main() {
         float heads = smoothstep(0.78, 0.9, vT) * smoothstep(0.6, 0.95, uMat);
         col = mix(col, vec3(0.86, 0.68, 0.20), heads * 0.6);
         col = mix(col, vec3(0.25, 0.19, 0.11) * (0.7 + 0.5 * vT), uDead);
+        col = mix(col, mix(vec3(0.30, 0.28, 0.10), vec3(0.74, 0.64, 0.30), vT) * (0.8 + 0.4 * v), uWilt * 0.9);
     } else if (uPalette < 1.5) {
         col = mix(vec3(0.07, 0.15, 0.03), mix(vec3(0.24, 0.36, 0.09), vec3(0.45, 0.42, 0.15), v), vT);
+        col = mix(col, mix(vec3(0.34, 0.28, 0.12), vec3(0.62, 0.52, 0.28), vT), uWilt);
     } else {
         col = mix(vec3(0.14, 0.2, 0.06), mix(vec3(0.45, 0.45, 0.20), vec3(0.62, 0.52, 0.26), v), vT);
+        col = mix(col, mix(vec3(0.40, 0.33, 0.16), vec3(0.68, 0.58, 0.32), vT), uWilt);
     }
     col *= 0.85 + 0.3 * v;
     vec3 N = normalize(vNormal);

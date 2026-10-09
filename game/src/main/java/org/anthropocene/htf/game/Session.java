@@ -12,7 +12,7 @@ public final class Session {
     public static final String[] SPEED_LABELS = {"1x", "2x", "4x", "8x"};
 
     public final Season season;
-    public final Config cfg = Config.DEFAULT;
+    public final Config cfg;
     public final String mode, variety;
     public GameState state;
     public String id, name;
@@ -25,11 +25,12 @@ public final class Session {
     public boolean endShown;
 
     public Session(Season season, String mode, String variety, String name) {
-        this(season, mode, variety, name, Config.DEFAULT.defaultTransplant.toString());
+        this(season, mode, variety, name, Config.forSeason(season).defaultTransplant.toString());
     }
 
     public Session(Season season, String mode, String variety, String name, String plantDate) {
         this.season = season;
+        this.cfg = Config.forSeason(season);
         this.mode = mode;
         this.variety = mode.equals(MODE_RAHIM) ? "long" : variety;
         this.name = name;
@@ -41,7 +42,7 @@ public final class Session {
     public boolean actionsAllowed() { return mode.equals(MODE_SCOUT); }
 
     public static Session restore(Season season, SaveManager.SaveData d) {
-        Session s = new Session(season, d.mode, d.variety, d.name, d.plantDate != null ? d.plantDate : Config.DEFAULT.defaultTransplant.toString());
+        Session s = new Session(season, d.mode, d.variety, d.name, d.plantDate != null ? d.plantDate : Config.forSeason(season).defaultTransplant.toString());
         s.id = d.id;
         s.created = d.created;
         s.actions.addAll(d.actions);

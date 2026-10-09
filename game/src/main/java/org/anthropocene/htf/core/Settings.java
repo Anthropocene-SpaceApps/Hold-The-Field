@@ -41,6 +41,7 @@ public final class Settings {
     // Game
     public boolean showHints = true;
     public boolean sampleDataWarning = true;
+    public String language = "bn".equals(java.util.Locale.getDefault().getLanguage()) ? "bn" : "en";   // "en" or "bn"; follows the system language on first run
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -74,6 +75,7 @@ public final class Settings {
 
     private void sanitize() {
         if (keys == null) keys = new HashMap<>();
+        if (!"bn".equals(language)) language = "en";
         fov = Math.max(40, Math.min(110, fov));
         renderDistance = Math.max(4, Math.min(16, renderDistance));
         guiScale = Math.max(0, Math.min(5, guiScale));

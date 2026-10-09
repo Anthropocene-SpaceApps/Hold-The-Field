@@ -68,7 +68,7 @@ public final class WorldSelectScreen extends Screen {
         for (Widget wd : widgets) wd.render(r, mx, my);
         if (saves.isEmpty()) {
             r.textCentered("No farms yet", w / 2f, cardY + 220, 22, TEXT, false, true);
-            r.textCentered("Start a new season to replay a real NASA-measured flood.", w / 2f, cardY + 252, 14, MUTED, false, false);
+            r.textCentered("Start a new season to replay a real NASA-measured flood or drought.", w / 2f, cardY + 252, 14, MUTED, false, false);
         }
     }
 

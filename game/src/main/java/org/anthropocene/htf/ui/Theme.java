@@ -1,5 +1,6 @@
 package org.anthropocene.htf.ui;
 
+import org.anthropocene.htf.core.I18n;
 import org.anthropocene.htf.gfx.Renderer2D;
 
 /** Colours, type sizes and card drawing shared by every screen. */
@@ -36,7 +37,7 @@ public final class Theme {
         r.roundRect(x, y + H2 + 6, 34, 3, 1.5f, ACCENT);
     }
 
-    public static void label(Renderer2D r, String text, float x, float y) { r.text(text.toUpperCase(), x, y, LABEL, MUTED, false, true); }
+    public static void label(Renderer2D r, String text, float x, float y) { r.text(I18n.caps(text), x, y, LABEL, MUTED, false, true); }
 
     public static float ease(float t) { return t * t * (3 - 2 * t); }
 }

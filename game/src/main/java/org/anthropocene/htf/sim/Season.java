@@ -9,6 +9,7 @@ public final class Season {
 
     public String id;
     public String region;
+    public String hazard;               // optional: "drought"; anything else is the flood scenario
     public String season;
     public boolean sample;
     public String note;

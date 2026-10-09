@@ -8,7 +8,7 @@ import java.util.List;
 public final class Engine {
     private Engine() {}
 
-    public enum ActionType { RAISE_BUND, HARVEST }
+    public enum ActionType { RAISE_BUND, HARVEST, IRRIGATE }
     public record ActionResult(GameState state, boolean ok, String reason) {}
 
     /** Season recap for the end screen. */
@@ -16,11 +16,27 @@ public final class Engine {
                           Integer leadDays, int coinsLeft, int actions) {}
 
     public static String scoutStatus(List<Day> days, int i, Config cfg) {
+        if (cfg.isDrought()) {
+            double rain7 = recentRain(days, i, 7), soil = days.get(i).soil();
+            if (rain7 < cfg.dryWarnMm && soil < cfg.soilWarn) return "warning";
+            if (rain7 < cfg.dryWatchMm && soil < cfg.soilWatch) return "watch";
+            return "calm";
+        }
         double sum = threeDayUpstream(days, i);
         if (sum >= cfg.warningMm) return "warning";
         if (sum >= cfg.watchMm) return "watch";
         return "calm";
     }
+
+    /** Rain on the farm over the last n days (drought scout). */
+    public static double recentRain(List<Day> days, int i, int n) {
+        double s = 0;
+        for (int k = Math.max(0, i - n + 1); k <= i; k++) s += days.get(k).rainFarm();
+        return s;
+    }
+
+    /** Variety-specific soil wetness below which the crop suffers (drought scenario). */
+    public static double stressThreshold(Config cfg, String variety) { return cfg.varieties.get(variety).stressSoil(); }
 
     public static double threeDayUpstream(List<Day> days, int i) {
         double s = 0;
@@ -48,6 +64,11 @@ public final class Engine {
         s.coins = cfg.startCoins;
         s.bund = cfg.bundStart;
         s.history.add(new GameState.Point(0, cfg.bundStart));
+        if (cfg.isDrought()) {
+            s.tank = cfg.tankStart;
+            s.moisture = data.day(s.i).soil();
+            s.history.set(0, new GameState.Point(s.moisture, stressThreshold(cfg, variety)));
+        }
         return s;
     }
 
@@ -74,7 +95,7 @@ public final class Engine {
             s.finished = true;
             if (s.alive && !s.harvested) {
                 s.harvested = true;
-                s.yieldPct = s.maturity * cfg.varieties.get(s.variety).potential();
+                s.yieldPct = cfg.isDrought() ? droughtYield(s, cfg) : s.maturity * cfg.varieties.get(s.variety).potential();
                 s.events.add(ev(s, "harvest", "Season ended: crop harvested"));
             }
             return s;
@@ -83,6 +104,7 @@ public final class Engine {
         Day lagged = data.day(Math.max(0, i - cfg.lagDays));
         s.i = i;
         s.date = day.date();
+        if (cfg.isDrought()) return stepDrought(s, state, data, cfg, day, i);
         s.level = Math.max(0, s.level * cfg.drain + cfg.a * lagged.rainUp() + cfg.b * day.rainFarm() - cfg.baseLoss);
         s.history.add(new GameState.Point(s.level, s.bund));
         s.status = scoutStatus(data.days, i, cfg);
@@ -118,11 +140,68 @@ public final class Engine {
         return s;
     }
 
+
+    /** One day of the drought scenario. */
+    private static GameState stepDrought(GameState s, GameState prev, Season data, Config cfg, Day day, int i) {
+        s.boost *= cfg.boostDecay;
+        s.tank = Math.min(cfg.tankMax, s.tank + cfg.tankPerMm * day.rainFarm());
+        s.moisture = Math.max(0, Math.min(1, day.soil() + s.boost));
+        double thr = stressThreshold(cfg, s.variety);
+        s.history.add(new GameState.Point(s.moisture, thr));
+        s.status = scoutStatus(data.days, i, cfg);
+        if (rank(s.status) > rank(prev.status) && !announcedRecently(s, s.status, 12)) {
+            s.events.add(ev(s, s.status, s.status.equals("warning")
+                    ? "Scout: DROUGHT WARNING, the rain has stopped and the soil is drying"
+                    : "Scout: watch, rain is thinning out and the soil is drying"));
+        }
+        if (!s.harvested && s.alive) {
+            s.maturity = maturityOn(day.date(), s.variety, s.transplant, cfg);
+            double deficit = Math.max(0, thr - s.moisture) / thr;
+            s.stressed = deficit > 0;
+            if (s.stressed) {
+                // flowering and grain filling (55% to 90% maturity) are the thirsty weeks; ripening hardly cares
+                double sensitivity = s.maturity > 0.9 ? 0.3 : s.maturity >= 0.55 ? 2.0 : s.maturity >= 0.35 ? 1.3 : 1.0;
+                double heat = day.tmax() > cfg.heatC ? 1.5 : 1.0;     // heat on top of dry soil hurts more
+                if (s.stressDays == 0) s.events.add(ev(s, "stress", "Crop stress: the soil is too dry for the rice"));
+                s.stressDays += 1;
+                s.stressLoad += sensitivity * heat * deficit * cfg.stressRate;
+            }
+            if (s.stressLoad >= 1) {
+                s.alive = false;
+                s.yieldPct = 0;
+                s.events.add(ev(s, "loss", "Crop failed in the drought"));
+            }
+            if (s.alive && s.maturity >= 1) {
+                s.harvested = true;
+                s.yieldPct = droughtYield(s, cfg);
+                s.events.add(ev(s, "harvest", "Full harvest"));
+            }
+        }
+        if (i == data.length() - 1) return step(s, data, cfg);
+        return s;
+    }
+
+    /** True if the scout already raised this alert within the last n days (a flickering index must not nag). */
+    private static boolean announcedRecently(GameState s, String type, int n) {
+        for (int k = s.events.size() - 1; k >= 0; k--) {
+            Event e = s.events.get(k);
+            if (s.i - e.i() > n) break;
+            if (e.type().equals(type)) return true;
+        }
+        return false;
+    }
+
+    /** Harvest share: maturity x variety potential x what the dry weeks left of the crop. */
+    private static double droughtYield(GameState s, Config cfg) {
+        return s.maturity * cfg.varieties.get(s.variety).potential() * Math.max(0, 1 - s.stressLoad);
+    }
+
     /** Player actions. */
     public static ActionResult act(GameState state, ActionType type, Config cfg) {
         GameState s = state.copy();
         switch (type) {
             case RAISE_BUND -> {
+                if (cfg.isDrought()) return new ActionResult(state, false, "Unknown action");
                 if (s.harvested || !s.alive) return new ActionResult(state, false, "The season is already decided");
                 if (s.bundRaises >= cfg.maxBundRaises) return new ActionResult(state, false, "Bund is already at maximum height");
                 if (s.coins < cfg.bundRaiseCost) return new ActionResult(state, false, "Not enough coins");
@@ -134,6 +213,21 @@ public final class Engine {
                 s.events.add(ev(s, "action", String.format("Raised bund to %.2f m", s.bund)));
                 return new ActionResult(s, true, null);
             }
+            case IRRIGATE -> {
+                if (!cfg.isDrought()) return new ActionResult(state, false, "Unknown action");
+                if (s.harvested || !s.alive) return new ActionResult(state, false, "The season is already decided");
+                if (s.tank < 1) return new ActionResult(state, false, "The water tank is empty");
+                if (s.coins < cfg.irrigationCost) return new ActionResult(state, false, "Not enough coins");
+                s.coins -= cfg.irrigationCost;
+                s.tank -= 1;
+                s.irrigations += 1;
+                s.boost = Math.min(cfg.boostMax, s.boost + cfg.irrigationBoost);
+                s.moisture = Math.min(1, s.moisture + cfg.irrigationBoost);
+                int last = s.history.size() - 1;
+                s.history.set(last, new GameState.Point(s.moisture, stressThreshold(cfg, s.variety)));
+                s.events.add(ev(s, "action", "Irrigated the field, " + Math.round(s.tank) + " tank loads left"));
+                return new ActionResult(s, true, null);
+            }
             case HARVEST -> {
                 if (s.harvested || !s.alive) return new ActionResult(state, false, "Nothing to harvest");
                 if (s.maturity < cfg.minHarvestMaturity) {
@@ -141,7 +235,7 @@ public final class Engine {
                             Math.round(s.maturity * 100), Math.round(cfg.minHarvestMaturity * 100)));
                 }
                 s.harvested = true;
-                s.yieldPct = s.maturity * cfg.varieties.get(s.variety).potential();
+                s.yieldPct = cfg.isDrought() ? droughtYield(s, cfg) : s.maturity * cfg.varieties.get(s.variety).potential();
                 s.events.add(ev(s, "harvest", "Harvested early at " + Math.round(s.maturity * 100) + "% maturity"));
                 return new ActionResult(s, true, null);
             }
@@ -158,7 +252,13 @@ public final class Engine {
         GameState s = createState(data, cfg, variety, transplantIso);
         while (!s.finished) {
             s = step(s, data, cfg);
-            if (policy.equals("scout") && !s.harvested && s.alive) {
+            if (policy.equals("scout") && !s.harvested && s.alive && cfg.isDrought()) {
+                // irrigate when the scout is worried and the soil is about to cross the crop's stress line
+                if (!s.status.equals("calm") && s.moisture < stressThreshold(cfg, s.variety) + 0.14) {
+                    ActionResult r = act(s, ActionType.IRRIGATE, cfg);
+                    if (r.ok()) s = r.state();
+                }
+            } else if (policy.equals("scout") && !s.harvested && s.alive) {
                 if (s.status.equals("warning")) {
                     ActionResult h = act(s, ActionType.HARVEST, cfg);
                     if (h.ok()) { s = h.state(); continue; }
@@ -195,6 +295,7 @@ public final class Engine {
 
     public static Summary summarize(GameState state) {
         Event warning = first(state, "warning"), flood = first(state, "flood");
+        if (flood == null) flood = first(state, "stress");       // drought: the first day the crop felt it
         long actions = state.events.stream()
                 .filter(e -> e.type().equals("action") || (e.type().equals("harvest") && e.text().contains("early"))).count();
         return new Summary(state.yieldPct, !state.alive,

@@ -2,6 +2,15 @@
   {
     "id": "haor-2017",
     "name": "Sunamganj Haor, Boro 2017",
-    "blurb": "Replay the season that ended in a flash flood. NASA POWER daily rain, temperature and soil wetness for the farm and the Meghalaya hills upstream."
+    "blurb": "Replay the season that ended in a flash flood. NASA POWER daily rain, temperature and soil wetness for the farm and the Meghalaya hills upstream.",
+    "hazard": "flood",
+    "tag": "Flash flood"
+  },
+  {
+    "id": "barind-2022",
+    "name": "Barind Tract, Aman 2022",
+    "hazard": "drought",
+    "tag": "Drought",
+    "blurb": "The monsoon stops while the rice is flowering. NASA POWER rain, soil wetness and heat show the dry spell coming; irrigate from the village tank before the crop suffers."
   }
 ]

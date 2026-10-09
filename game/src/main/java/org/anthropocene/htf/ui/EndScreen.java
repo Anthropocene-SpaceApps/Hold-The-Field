@@ -1,5 +1,6 @@
 package org.anthropocene.htf.ui;
 
+import org.anthropocene.htf.core.I18n;
 import org.anthropocene.htf.game.ReportExporter;
 import org.anthropocene.htf.game.Session;
 import org.anthropocene.htf.gfx.Renderer2D;
@@ -42,13 +43,17 @@ public final class EndScreen extends Screen {
             level[i] = i < st.startIndex ? 0 : st.history.get(k).level();
             bund[i] = st.history.get(k).bund();
         }
-        chart = new Chart("Floodwater vs your embankment (m)");
+        boolean dry = cfg.isDrought();
+        chart = new Chart(dry ? "Soil wetness vs the crop's stress line" : "Floodwater vs your embankment (m)");
         chart.days = n; chart.visibleUntil = st.i; chart.cursorDay = st.i; chart.dates = dates; chart.decimals = 2; chart.firstDay = st.startIndex;
-        chart.areaOf("Water", level, WATER, "m").stepped("Embankment", bund, SOIL, "m");
+        if (dry) chart.yMax = 1;
+        if (dry) chart.areaOf("Soil + irrigation", level, WATER, "").stepped("Stress line", bund, SOIL, "");
+        else chart.areaOf("Water", level, WATER, "m").stepped("Embankment", bund, SOIL, "m");
         for (Event e : st.events) {
             switch (e.type()) {
                 case "warning" -> chart.vline(e.i(), BAD, "warning");
                 case "flood" -> chart.vline(e.i(), WATER, "flood");
+                case "stress" -> chart.vline(e.i(), TEMP, "stress");
                 case "harvest" -> chart.vline(e.i(), GOOD, "harvest");
                 case "loss" -> chart.vline(e.i(), 0xFFCCCCCC, "loss");
                 default -> { }
@@ -70,29 +75,33 @@ public final class EndScreen extends Screen {
     private void buildInsights() {
         insights.clear();
         Config cfg = session.cfg;
+        boolean dry = cfg.isDrought();
         Engine.Summary sum = Engine.summarize(session.state);
         Engine.Plan bestNo = noWarning.stream().max(java.util.Comparator.comparingDouble(Engine.Plan::yieldPct)).orElse(null);
         Engine.Plan bestScout = withScout.stream().max(java.util.Comparator.comparingDouble(Engine.Plan::yieldPct)).orElse(null);
-        if (sum.leadDays() != null) insights.add("NASA rain data in the hills gave a warning " + sum.leadDays() + " day" + (sum.leadDays() == 1 ? "" : "s") + " before the water reached the embankment.");
-        else if (sum.floodDate() != null) insights.add("The flood arrived without a scout warning ahead of it.");
-        else insights.add("No flood reached the embankment on this plan.");
-        if (bestNo != null) insights.add("With no warning at all, the best plan keeps " + Math.round(bestNo.yieldPct() * 100) + "%: " + planLabel(bestNo) + ".");
-        if (bestScout != null) insights.add("Acting on the scout, the best plan keeps " + Math.round(bestScout.yieldPct() * 100) + "%: " + planLabel(bestScout) + ".");
-        if (bestNo != null && bestNo.variety().equals("short") && !bestNo.transplant().equals(cfg.transplantOptions[cfg.transplantOptions.length - 1][0]))
+        if (sum.leadDays() != null) insights.add(I18n.f(dry ? "NASA rain and soil data gave a warning {} day(s) before the crop felt the dry soil."
+                : "NASA rain data in the hills gave a warning {} day(s) before the water reached the embankment.", sum.leadDays()));
+        else if (sum.floodDate() != null) insights.add(dry ? "The dry spell hit without a scout warning ahead of it." : "The flood arrived without a scout warning ahead of it.");
+        else insights.add(dry ? "The crop never suffered from dry soil on this plan." : "No flood reached the embankment on this plan.");
+        if (bestNo != null) insights.add(I18n.f("With no warning at all, the best plan keeps {}%: {}.", Math.round(bestNo.yieldPct() * 100), planLabel(bestNo)));
+        if (bestScout != null) insights.add(I18n.f("Acting on the scout, the best plan keeps {}%: {}.", Math.round(bestScout.yieldPct() * 100), planLabel(bestScout)));
+        if (dry && bestNo != null && bestScout != null && bestNo.variety().equals("short") && bestScout.variety().equals("long"))
+            insights.add("Without a warning the drought-tolerant variety is the safer choice; with the scout and well-timed irrigation the standard variety wins.");
+        else if (!dry && bestNo != null && bestNo.variety().equals("short") && !bestNo.transplant().equals(cfg.transplantOptions[cfg.transplantOptions.length - 1][0]))
             insights.add("Ripening earlier let the rice come in before the spring water: timing is itself an adaptation.");
         else if (bestNo != null && bestNo.yieldPct() < 0.5)
             insights.add("Without a warning, every plan here lost most of the crop: early warning, not the calendar, is what protects the harvest.");
     }
 
-    private String planLabel(Engine.Plan p) { return session.cfg.varieties.get(p.variety()).label().replace("-duration boro", "") + ", " + p.label(); }
+    private String planLabel(Engine.Plan p) { return I18n.t(session.cfg.varieties.get(p.variety()).label()) + ", " + I18n.t(p.label()); }
 
     private void exportReport() {
         try {
             Path p = ReportExporter.export(session, other, noWarning, withScout);
-            game.toastMsg("Report saved: " + p);
-            game.say("System", "Report saved to " + p, 0xFFB6D8FF);
+            game.toastMsg(I18n.f("Report saved: {}", p));
+            game.say("System", I18n.f("Report saved to {}", p), 0xFFB6D8FF);
         } catch (IOException e) {
-            game.toastMsg("Could not save the report: " + e.getMessage());
+            game.toastMsg(I18n.f("Could not save the report: {}", e.getMessage()));
         }
     }
 
@@ -104,8 +113,10 @@ public final class EndScreen extends Screen {
         drawCard(r);
         GameState st = session.state;
         boolean rahim = session.mode.equals(Session.MODE_RAHIM);
-        r.text(st.yieldPct > 0 ? "The rice is home" : "The water took it all", cardX + 32, cardY + 22, 30, TEXT, false, true);
-        r.text("Same field, same real rain. The difference is whether the warning reached the farmer, and how the season was planned.", cardX + 32, cardY + 62, 13, MUTED);
+        boolean dry = session.cfg.isDrought();
+        r.text(st.yieldPct > 0 ? "The rice is home" : dry ? "The drought took it all" : "The water took it all", cardX + 32, cardY + 22, 30, TEXT, false, true);
+        r.text(dry ? "Same field, same real weather. The difference is whether the warning reached the farmer, and how the season was planned."
+                : "Same field, same real rain. The difference is whether the warning reached the farmer, and how the season was planned.", cardX + 32, cardY + 62, 13, MUTED);
 
         int x0 = cardX + 32, top = cardY + 100;
         int c1 = 300, c3 = 330, gap = 22, c2 = cardW - 64 - c1 - c3 - gap * 2;
@@ -126,7 +137,7 @@ public final class EndScreen extends Screen {
         List<Event> events = st.events.stream().filter(e -> !e.type().equals("watch")).toList();
         for (int i = Math.max(0, events.size() - 6); i < events.size() && ty < cardY + cardH - 80; i++) {
             Event e = events.get(i);
-            int col = switch (e.type()) { case "warning", "loss" -> BAD; case "flood" -> WATER; case "harvest" -> GOOD; default -> TEXT; };
+            int col = switch (e.type()) { case "warning", "loss" -> BAD; case "flood" -> WATER; case "stress" -> TEMP; case "harvest" -> GOOD; default -> TEXT; };
             r.circle(cx + 4, ty + 7, 3.5f, col);
             r.text(Hud.date(e.date()) + "   " + e.text(), cx + 16, ty, 12.5f, 0xFFD3DEEC);
             ty += 19;
@@ -144,7 +155,7 @@ public final class EndScreen extends Screen {
         r.roundRect(x, y, w, 106, 13, 0x16FFFFFF);
         r.roundRing(x, y, w, 106, 13, 1f, BORDER);
         r.text(label, x + 16, y + 12, 12.5f, MUTED, false, true);
-        r.text(Math.round(yield * 100) + "%", x + 16, y + 30, 46, color, false, true);
+        r.text(I18n.f("{}%", Math.round(yield * 100)), x + 16, y + 30, 46, color, false, true);
         r.text("of the harvest saved", x + 16, y + 84, 12, FAINT);
         r.roundRect(x + w - 100, y + 76, 84, 8, 4, 0x22FFFFFF);
         r.roundRect(x + w - 100, y + 76, 84 * (float) Math.min(1, yield), 8, 4, color);
@@ -157,7 +168,8 @@ public final class EndScreen extends Screen {
         for (int c = 0; c < cols; c++) r.textCentered(cfg.transplantOptions[c][1].replaceAll(" \\(.*", ""), x + 78 + c * cw + cw / 2f, y + 22, 11, MUTED, false, false);
         String[] vs = {"short", "long"};
         for (int ri = 0; ri < 2; ri++) {
-            r.text(vs[ri].equals("short") ? "Short rice" : "Long rice", x, y + 46 + ri * (ch + 6) + 14, 12, MUTED);
+            boolean dryCfg = cfg.isDrought();
+            r.text(vs[ri].equals("short") ? (dryCfg ? "Tolerant rice" : "Short rice") : (dryCfg ? "Standard rice" : "Long rice"), x, y + 46 + ri * (ch + 6) + 14, 12, MUTED);
             for (int c = 0; c < cols; c++) {
                 Engine.Plan p = find(plans, vs[ri], cfg.transplantOptions[c][0]);
                 float cx = x + 78 + c * cw + 3, cy = y + 40 + ri * (ch + 6);
@@ -165,7 +177,7 @@ public final class EndScreen extends Screen {
                 float f = (float) Math.min(1, p.yieldPct());
                 int col = Renderer2D.lerp(0xFFB5453A, 0xFF4FBF7E, f);
                 r.roundRect(cx, cy, cw - 6, ch, 9, Renderer2D.withAlpha(col, 0.78f));
-                r.textCentered(Math.round(p.yieldPct() * 100) + "%", cx + (cw - 6) / 2f, cy + 13, 17, 0xFFFFFFFF, false, true);
+                r.textCentered(I18n.f("{}%", Math.round(p.yieldPct() * 100)), cx + (cw - 6) / 2f, cy + 13, 17, 0xFFFFFFFF, false, true);
                 boolean mine = p.variety().equals(session.variety) && p.transplant().equals(session.state.transplant);
                 if (mine) r.roundRing(cx - 1, cy - 1, cw - 4, ch + 2, 10, 2.2f, 0xFFFFFFFF);
             }

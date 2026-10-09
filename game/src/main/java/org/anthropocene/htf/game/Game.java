@@ -4,6 +4,7 @@ import org.anthropocene.htf.audio.Audio;
 import org.anthropocene.htf.core.KeyAction;
 import org.anthropocene.htf.core.KeyNames;
 import org.anthropocene.htf.core.Paths;
+import org.anthropocene.htf.core.I18n;
 import org.anthropocene.htf.core.Settings;
 import org.anthropocene.htf.gfx.*;
 import org.anthropocene.htf.sim.*;
@@ -66,7 +67,11 @@ public final class Game implements InputListener {
     private double speechUntil, thunderDelay = -1;
     private DevCapture dev;
 
-    public Game(Settings settings) { this.settings = settings; }
+    public Game(Settings settings) {
+        this.settings = settings;
+        if (System.getProperty("htf.lang") != null) settings.language = System.getProperty("htf.lang");
+        org.anthropocene.htf.core.I18n.setLanguage(settings.language);
+    }
 
     // ------------------------------------------------------------------ accessors for UI
 
@@ -102,20 +107,26 @@ public final class Game implements InputListener {
         satelliteView = !satelliteView;
         scene.overlay = satelliteView;
         audio.click();
-        if (satelliteView) { satTarget.set(0, 0, -330); satDist = 1000; satYaw = 0.25f; satPitch = -1.12f; }
+        if (satelliteView) {
+            if (session != null && session.cfg.isDrought()) { satTarget.set(0, 0, -30); satDist = 560; satYaw = 0.25f; satPitch = -1.1f; }
+            else { satTarget.set(0, 0, -330); satDist = 1000; satYaw = 0.25f; satPitch = -1.12f; }
+        }
     }
 
     public String targetLabel() {
         if (session == null) return null;
+        boolean dry = session.cfg.isDrought();
         switch (target.type()) {
             case BUND -> {
-                if (!session.actionsAllowed()) return "Embankment";
+                if (dry || !session.actionsAllowed()) return "Embankment";
                 int left = session.cfg.maxBundRaises - session.state.bundRaises;
-                return slot == 0 ? (left > 0 ? "Embankment: click to raise (Tk " + session.cfg.bundRaiseCost + ")" : "Embankment: at maximum height") : "Embankment";
+                return slot == 0 ? (left > 0 ? I18n.f("Embankment: click to raise (Tk {})", session.cfg.bundRaiseCost) : "Embankment: at maximum height") : "Embankment";
             }
             case CROP -> {
                 int pct = (int) Math.round(session.state.maturity * 100);
-                return slot == 1 ? "Rice " + pct + "%: click to harvest" : "Rice " + pct + "% mature";
+                if (dry && slot == 0 && session.actionsAllowed())
+                    return session.state.tank >= 1 ? I18n.f("Rice {}%: click to irrigate (Tk {})", pct, session.cfg.irrigationCost) : I18n.f("Rice {}%: the water tank is empty", pct);
+                return slot == 1 ? I18n.f("Rice {}%: click to harvest", pct) : I18n.f("Rice {}% mature", pct);
             }
             case RAHIM -> { return "Rahim: right-click to talk"; }
             default -> { return null; }
@@ -203,8 +214,13 @@ public final class Game implements InputListener {
         player.flying = false;
         slot = 0;
         chat.clear();
-        say("Rahim", "Welcome to the haor. Walk to the lake and watch the sky.", 0xFFFFD27A);
-        say("Scout", "Satellite Scout online. NASA measures the rain in the hills upstream.", 0xFF8FD0FF);
+        if (s.cfg.isDrought()) {
+            say("Rahim", "Welcome to the Barind. The soil is hard and the sky is wide. Watch the rain.", 0xFFFFD27A);
+            say("Scout", "Satellite Scout online. NASA measures the rain and the soil wetness at the farm.", 0xFF8FD0FF);
+        } else {
+            say("Rahim", "Welcome to the haor. Walk to the lake and watch the sky.", 0xFFFFD27A);
+            say("Scout", "Satellite Scout online. NASA measures the rain in the hills upstream.", 0xFF8FD0FF);
+        }
         setScreen(null);
         s.timePaused = true;
         SaveManager.save(s.toSave());
@@ -222,7 +238,7 @@ public final class Game implements InputListener {
     }
 
     public void say(String sender, String msg, int color) {
-        chat.add(new ChatLine("<" + sender + "> " + msg, color, time));
+        chat.add(new ChatLine("<" + I18n.t(sender) + "> " + I18n.t(msg), color, time));
         if (chat.size() > 60) chat.remove(0);
     }
 
@@ -230,7 +246,7 @@ public final class Game implements InputListener {
         for (Advancements.Adv a : list) {
             toasts.add(new Toast("Advancement made", a.title(), time));
             audio.achieve();
-            say("Advancement", a.title() + ": " + a.description(), 0xFFFFFF77);
+            say("Advancement", I18n.t(a.title()) + ": " + I18n.t(a.description()), 0xFFFFFF77);
         }
     }
 
@@ -260,6 +276,7 @@ public final class Game implements InputListener {
     }
 
     public void applySettings() {
+        org.anthropocene.htf.core.I18n.setLanguage(settings.language);
         window.setVsync(settings.vsync);
         if (window.isFullscreen() != settings.fullscreen) window.setFullscreen(settings.fullscreen);
         audio.applyVolumes();
@@ -337,18 +354,24 @@ public final class Game implements InputListener {
     private void showEnd() {
         session.endShown = true;
         GameState base = session.baseline();
-        grant(advancements.onEnd(session.state, base, session.actionsAllowed()));
+        grant(advancements.onEnd(session.state, base, session.actionsAllowed(), session.cfg.isDrought()));
         saveSession();
         setScreen(new EndScreen(session, base));
     }
 
     private void handleEvents() {
+        boolean dry = session.cfg.isDrought();
         for (Event e : session.drainEvents()) {
             switch (e.type()) {
-                case "watch" -> say("Scout", "Rain is building in the Meghalaya hills.", 0xFFFFC266);
+                case "watch" -> say("Scout", dry ? "The rain is thinning out and the soil is starting to dry." : "Rain is building in the Meghalaya hills.", 0xFFFFC266);
                 case "warning" -> {
-                    say("Scout", "FLOOD WARNING: heavy rain upstream. Water may reach the haor within days!", 0xFFFF6B6B);
-                    say("Rahim", "The sky over the hills has been heavy all week. Something is coming.", 0xFFFFD27A);
+                    if (dry) {
+                        say("Scout", "DROUGHT WARNING: no rain for days and the soil is drying fast. Irrigate before the rice suffers!", 0xFFFF6B6B);
+                        say("Rahim", "The cracks are opening in the neighbours' fields. We must save our water for the flowering weeks.", 0xFFFFD27A);
+                    } else {
+                        say("Scout", "FLOOD WARNING: heavy rain upstream. Water may reach the haor within days!", 0xFFFF6B6B);
+                        say("Rahim", "The sky over the hills has been heavy all week. Something is coming.", 0xFFFFD27A);
+                    }
                     audio.warning();
                 }
                 case "flood" -> {
@@ -356,8 +379,12 @@ public final class Game implements InputListener {
                     audio.flood();
                     scene.burst(0f, 0.8f, -38f, 60, 0.45f, 0.6f, 0.75f);
                 }
+                case "stress" -> {
+                    say("Rahim", "The leaves are rolling up. The rice is thirsty.", 0xFFFF9A6B);
+                    audio.error();
+                }
                 case "loss" -> {
-                    say("Rahim", "Everything we planted... gone under the water.", 0xFFCCCCCC);
+                    say("Rahim", dry ? "Everything we planted... dried up in the field." : "Everything we planted... gone under the water.", 0xFFCCCCCC);
                     audio.error();
                 }
                 case "harvest" -> {
@@ -367,7 +394,7 @@ public final class Game implements InputListener {
                 case "action" -> say("You", e.text(), 0xFFFFFFFF);
                 default -> { }
             }
-            grant(advancements.onEvent(e.type(), session.state));
+            grant(advancements.onEvent(e.type(), session.state, dry));
         }
     }
 
@@ -377,6 +404,14 @@ public final class Game implements InputListener {
         if (session == null || screen != null) return;
         switch (slot) {
             case 0 -> {
+                if (session.cfg.isDrought()) {
+                    if (target.type() != WorldScene.TargetType.CROP) { toastMsg("Aim at the rice field to irrigate"); return; }
+                    Engine.ActionResult r = session.act(Engine.ActionType.IRRIGATE);
+                    if (!r.ok()) { toastMsg(r.reason()); audio.error(); return; }
+                    audio.place();
+                    scene.burst((float) target.x(), (float) target.y() + 0.5f, (float) target.z(), 40, 0.35f, 0.6f, 0.95f);
+                    return;
+                }
                 if (target.type() != WorldScene.TargetType.BUND) { toastMsg("Aim at the earth embankment between the field and the haor"); return; }
                 Engine.ActionResult r = session.act(Engine.ActionType.RAISE_BUND);
                 if (!r.ok()) { toastMsg(r.reason()); audio.error(); return; }
@@ -398,22 +433,29 @@ public final class Game implements InputListener {
     /** Right-click on Rahim: he talks about what the data and the sky are doing right now. */
     private void talkToRahim() {
         GameState st = session.state;
+        boolean dry = session.cfg.isDrought();
         String line;
-        if (!st.alive) line = "The water took it. My father always said the sky warns before it takes... next season I will plant earlier and watch the data.";
-        else if (st.harvested && st.yieldPct > 0.4) line = "The rice is home. We watched the rain in the hills and we did not wait. Alhamdulillah!";
+        if (!st.alive) line = dry ? "The sun took it. My father always said water is the real harvest... next season I will watch the soil and keep the tank for the flowering weeks."
+                : "The water took it. My father always said the sky warns before it takes... next season I will plant earlier and watch the data.";
+        else if (st.harvested && st.yieldPct > 0.4) line = dry ? "The rice is home. We watched the soil, we kept the water for the flowering weeks. Alhamdulillah!"
+                : "The rice is home. We watched the rain in the hills and we did not wait. Alhamdulillah!";
         else if (st.harvested) line = "We saved a little. Less than I hoped, but more than nothing.";
-        else if (st.flooded) line = "The water is over the bund! Save what you can, cut the rice if it is ripe enough!";
-        else if (st.status.equals("warning")) line = "The scout says very heavy rain in the hills. That water reaches the haor in about two days. Raise the bund, or cut the rice if it is 80% ripe.";
-        else if (st.status.equals("watch")) line = "Rain is building up in the hills. Keep an eye on the scout, and on the water gauge by the embankment.";
-        else if (st.maturity >= session.cfg.minHarvestMaturity) line = "The rice is ripe enough to cut. Every day we wait, the spring rains get closer.";
-        else line = "The rice is " + Math.round(st.maturity * 100) + "% grown. Rain in the hills takes about two days to reach us, so the NASA data gives us a head start.";
-        speechText = line;
+        else if (!dry && st.flooded) line = "The water is over the bund! Save what you can, cut the rice if it is ripe enough!";
+        else if (dry && st.stressed) line = "The soil is below what the rice can bear. Irrigate now, from the tank, and hope the rain returns.";
+        else if (st.status.equals("warning")) line = dry ? "The scout says the rain has stopped and the soil is drying. Irrigate before the leaves roll, and keep some water for later."
+                : "The scout says very heavy rain in the hills. That water reaches the haor in about two days. Raise the bund, or cut the rice if it is 80% ripe.";
+        else if (st.status.equals("watch")) line = dry ? "The rain is thinning out. Keep an eye on the scout, and on the soil gauge."
+                : "Rain is building up in the hills. Keep an eye on the scout, and on the water gauge by the embankment.";
+        else if (st.maturity >= session.cfg.minHarvestMaturity) line = dry ? "The rice is ripe enough to cut. The dry weather is on our side now." : "The rice is ripe enough to cut. Every day we wait, the spring rains get closer.";
+        else line = I18n.f(dry ? "The rice is {}% grown. The soil must stay wet while it flowers, and the NASA data shows us when it is drying."
+                : "The rice is {}% grown. Rain in the hills takes about two days to reach us, so the NASA data gives us a head start.", Math.round(st.maturity * 100));
+        speechText = I18n.t(line);
         speechUntil = time + 9;
         audio.click();
     }
 
     public void toastMsg(String msg) {
-        chat.add(new ChatLine(msg, 0xFFFFAA55, time));
+        chat.add(new ChatLine(I18n.t(msg), 0xFFFFAA55, time));
     }
 
     public void selectSlot(int i) {

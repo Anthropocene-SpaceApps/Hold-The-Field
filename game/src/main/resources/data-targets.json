@@ -1,3 +1,16 @@
 [
-  { "id": "haor-2017", "region": "haor", "start": "20161201", "end": "20170430", "label": "Sunamganj haor, boro 2017" }
+  {
+    "id": "haor-2017",
+    "region": "haor",
+    "start": "20161201",
+    "end": "20170430",
+    "label": "Sunamganj haor, boro 2017"
+  },
+  {
+    "id": "barind-2022",
+    "region": "barind",
+    "start": "20220625",
+    "end": "20221215",
+    "label": "Barind Tract, Aman 2022"
+  }
 ]

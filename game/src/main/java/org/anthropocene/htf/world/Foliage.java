@@ -173,7 +173,7 @@ public final class Foliage {
     /** common() must already have been applied to {@link #shader()} by the caller. */
     public Shader shader() { return shader; }
 
-    public void drawRice(double height, double mat, double droop, double dead, double lean, double wind, double fraction, boolean visible) {
+    public void drawRice(double height, double mat, double droop, double dead, double lean, double wind, double fraction, boolean visible, double wilt) {
         if (!visible) return;
         shader.set("uHeight", (float) height);
         shader.set("uWidth", 0.018f);
@@ -183,11 +183,12 @@ public final class Foliage {
         shader.set("uFade", 95f);
         shader.set("uMat", (float) mat);
         shader.set("uDead", (float) dead);
+        shader.set("uWilt", (float) wilt);
         shader.set("uPalette", 0f);
         draw(rice, fraction);
     }
 
-    public void drawGrass(double wind, double fraction) {
+    public void drawGrass(double wind, double fraction, double dry) {
         shader.set("uHeight", 0.34f);
         shader.set("uWidth", 0.016f);
         shader.set("uWind", (float) wind);
@@ -196,11 +197,12 @@ public final class Foliage {
         shader.set("uFade", 70f);
         shader.set("uMat", 0f);
         shader.set("uDead", 0f);
+        shader.set("uWilt", (float) dry);
         shader.set("uPalette", 1f);
         draw(grass, fraction);
     }
 
-    public void drawReeds(double wind, double fraction) {
+    public void drawReeds(double wind, double fraction, double dry) {
         shader.set("uHeight", 1.5f);
         shader.set("uWidth", 0.02f);
         shader.set("uWind", (float) wind);
@@ -209,6 +211,7 @@ public final class Foliage {
         shader.set("uFade", 150f);
         shader.set("uMat", 0f);
         shader.set("uDead", 0f);
+        shader.set("uWilt", (float) dry);
         shader.set("uPalette", 2f);
         draw(reed, fraction);
     }

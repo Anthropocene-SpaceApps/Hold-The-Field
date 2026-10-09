@@ -22,6 +22,14 @@ public final class GameState {
     public double yieldPct;
     public int underwaterDays;
     public boolean flooded;
+    // drought scenario
+    public double moisture;             // root-zone wetness the crop feels today: NASA soil plus irrigation
+    public double boost;                // irrigation still working in the soil
+    public double tank = 0;             // irrigation water left
+    public double stressLoad;           // accumulated crop stress; the crop fails at 1
+    public int stressDays;
+    public int irrigations;
+    public boolean stressed;            // the crop is suffering today
     public String status = "calm";
     public boolean finished;
     public List<Event> events = new ArrayList<>();
@@ -31,7 +39,8 @@ public final class GameState {
         GameState s = new GameState();
         s.i = i; s.startIndex = startIndex; s.transplant = transplant; s.date = date; s.variety = variety; s.coins = coins; s.bund = bund; s.bundRaises = bundRaises;
         s.level = level; s.maturity = maturity; s.alive = alive; s.harvested = harvested; s.yieldPct = yieldPct;
-        s.underwaterDays = underwaterDays; s.flooded = flooded; s.status = status; s.finished = finished;
+        s.underwaterDays = underwaterDays; s.flooded = flooded;
+        s.moisture = moisture; s.boost = boost; s.tank = tank; s.stressLoad = stressLoad; s.stressDays = stressDays; s.irrigations = irrigations; s.stressed = stressed; s.status = status; s.finished = finished;
         s.events = new ArrayList<>(events);
         s.history = new ArrayList<>(history);
         return s;

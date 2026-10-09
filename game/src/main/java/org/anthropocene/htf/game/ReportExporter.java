@@ -42,9 +42,9 @@ public final class ReportExporter {
         b.append("RESULT\n------\n");
         b.append(String.format("Harvest saved:          %d%%%n", Math.round(st.yieldPct * 100)));
         b.append(String.format("Same field, no warning: %d%%%n", Math.round(baseline.yieldPct * 100)));
-        b.append("Crop lost to flood:     ").append(sum.lost() ? "yes" : "no").append('\n');
+        b.append(cfg.isDrought() ? "Crop lost to drought:   " : "Crop lost to flood:     ").append(sum.lost() ? "yes" : "no").append('\n');
         if (sum.warningDate() != null) b.append("First scout warning:    ").append(sum.warningDate()).append('\n');
-        if (sum.floodDate() != null) b.append("Water over embankment:  ").append(sum.floodDate()).append('\n');
+        if (sum.floodDate() != null) b.append(cfg.isDrought() ? "First crop stress:       " : "Water over embankment:  ").append(sum.floodDate()).append('\n');
         if (sum.leadDays() != null) b.append("Warning lead time:      ").append(sum.leadDays()).append(" day(s)\n");
         b.append("Actions taken:          ").append(sum.actions()).append("\n\n");
         b.append("EVERY PLAN ON THE SAME REAL WEATHER (share of the harvest kept)\n----------------------------------------------------------------\n");
@@ -54,7 +54,8 @@ public final class ReportExporter {
             b.append(String.format("%-34s %-14s %-14s%n", cfg.varieties.get(a.variety()).label() + ", " + a.label(),
                     Math.round(a.yieldPct() * 100) + "%", Math.round(c.yieldPct() * 100) + "%"));
         }
-        b.append("\nHow to read this: it is a learning game built on a simplified model (one water bucket, one upstream rain point,\n")
+        b.append("\nHow to read this: it is a learning game built on a simplified model (")
+                .append(cfg.isDrought() ? "one soil layer, one rain point,\n" : "one water bucket, one upstream rain point,\n")
                 .append("linear crop growth). Yield potentials are game parameters, not agronomic advice. Use it to discuss timing and warning,\n")
                 .append("not to predict a real harvest.\n");
         return b.toString();
@@ -62,7 +63,9 @@ public final class ReportExporter {
 
     static String csv(Session s) {
         GameState st = s.state;
-        StringBuilder b = new StringBuilder("date,rain_upstream_mm,rain_farm_mm,tmax_c,soil_wetness,water_level_m,embankment_m\n");
+        StringBuilder b = new StringBuilder(s.cfg.isDrought()
+                ? "date,rain_upstream_mm,rain_farm_mm,tmax_c,soil_wetness,soil_moisture_with_irrigation,crop_stress_line\n"
+                : "date,rain_upstream_mm,rain_farm_mm,tmax_c,soil_wetness,water_level_m,embankment_m\n");
         for (int i = st.startIndex; i <= st.i && i < s.season.length(); i++) {
             Day d = s.season.day(i);
             GameState.Point p = st.history.get(Math.min(st.history.size() - 1, i - st.startIndex));

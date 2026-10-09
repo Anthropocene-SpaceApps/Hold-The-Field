@@ -34,7 +34,7 @@ public final class TitleScreen extends Screen {
         r.text("Field", lx, y + 78, 54, CROP, true, true);
         r.roundRect(lx, y + 146, 56, 4, 2, ACCENT);
         float ty = y + 168;
-        for (String line : r.wrap("A farming game where the climate raids your fields and NASA satellite data is your scout. Replay a real flash flood, day by day.", 400, 15)) {
+        for (String line : r.wrap("A farming game where the climate raids your fields and NASA satellite data is your scout. Replay a real flash flood or drought, day by day.", 400, 15)) {
             r.text(line, lx, ty, 15, MUTED);
             ty += 22;
         }
