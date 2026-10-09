@@ -25,7 +25,7 @@ console.log('Current CONFIG:', JSON.stringify(report(CONFIG)));
 if (target) {
   const day = (iso) => Date.parse(iso) / 86400000;
   let best = null;
-  for (let a = 0.0004; a <= 0.003; a += 0.0001) for (let drain = 0.6; drain <= 0.9; drain += 0.05) {
+  for (let a = 0.0004; a <= 0.008; a += 0.0001) for (let drain = 0.6; drain <= 0.9; drain += 0.05) {
     const cfg = { ...CONFIG, a, drain };
     const r = report(cfg);
     if (!r.rahim.flood || r.rahim.yield !== 0) continue;
