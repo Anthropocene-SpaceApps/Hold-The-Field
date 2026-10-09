@@ -67,6 +67,8 @@ public final class WorldScene implements Player.Collider {
     private GameState state;
 
     // smoothed visuals
+    private boolean drought;
+    private double parch, dust, rainHaze;
     private double time, shownLevel, shownBund = Landscape.DIKE_REF_H, floodReach, storm, farmRain, upRain, flash, flashTimer = 8, cropMat;
     public boolean overlay;                       // satellite data layer
     private boolean lightningPending;
@@ -191,6 +193,7 @@ public final class WorldScene implements Player.Collider {
         this.season = season;
         this.cfg = cfg;
         this.state = state;
+        this.drought = cfg.isDrought();
         snap();
     }
 
@@ -203,14 +206,23 @@ public final class WorldScene implements Player.Collider {
         shownBund = state.bund;
         floodReach = state.flooded ? 500 : 0;
         Day d = season.day(state.i);
-        upRain = clamp01(d.rainUp() / 150);
+        upRain = drought ? 0 : clamp01(d.rainUp() / 150);
         farmRain = clamp01(d.rainFarm() / 60);
         storm = Math.max(upRain, farmRain);
         cropMat = state.maturity;
+        parch = dryness();
+        dust = drought ? 0.45 + 0.4 * parch : 0;
+        riverSwell = drought ? -0.35 - 0.5 * parch : 0;
         particles.clear();
     }
 
     private static double clamp01(double v) { return Math.max(0, Math.min(1, v)); }
+
+    /** 0 = the soil is wet, 1 = parched (drought scenario only). */
+    private double dryness() { return drought && state != null ? clamp01((0.78 - state.moisture) / 0.45) : 0; }
+
+    /** How wilted the rice looks: today's soil and the stress it has already collected. */
+    private float wilt() { return drought && state != null ? (float) clamp01(0.5 * parch + 0.95 * state.stressLoad) : 0f; }
 
     public double rainIntensityUp() { return upRain; }
     public double rainIntensityFarm() { return farmRain; }
@@ -225,14 +237,17 @@ public final class WorldScene implements Player.Collider {
         if (state != null && season != null) {
             Day d = season.day(state.i);
             double k = Math.min(1, dt * 2.0);
-            upRain += (clamp01(d.rainUp() / 150) - upRain) * k;
+            upRain += ((drought ? 0 : clamp01(d.rainUp() / 150)) - upRain) * k;
             farmRain += (clamp01(d.rainFarm() / 60) - farmRain) * k;
             storm += (Math.max(upRain, farmRain) - storm) * Math.min(1, dt * 1.2);
             shownLevel += (state.level - shownLevel) * Math.min(1, dt * 2.4);
             shownBund += (state.bund - shownBund) * Math.min(1, dt * 3.0);
             cropMat += (state.maturity - cropMat) * Math.min(1, dt * 3.0);
             Day lagged = season.day(Math.max(0, state.i - cfg.lagDays));
-            riverSwell += (clamp01(lagged.rainUp() / 220) - riverSwell) * Math.min(1, dt * 1.5);
+            parch += (dryness() - parch) * Math.min(1, dt * 1.2);
+            dust += ((drought ? 0.45 + 0.4 * dryness() : 0) - dust) * Math.min(1, dt * 0.8);
+            double swellTarget = drought ? -0.35 - 0.5 * dryness() : clamp01(lagged.rainUp() / 220);
+            riverSwell += (swellTarget - riverSwell) * Math.min(1, dt * 1.5);
             if (state.flooded) floodReach = Math.min(500, floodReach + dt * 16);
             else floodReach = Math.max(0, floodReach - dt * 45);
         }
@@ -244,6 +259,7 @@ public final class WorldScene implements Player.Collider {
             lightningPending = true;
             flashTimer = 3 + rnd.nextDouble() * 9;
         }
+        atmo.dust = (float) dust;
         atmo.update(dt, st.timeMode, storm, flash);
         rahim.update(time, dt, state, viewer);
         for (int p = particles.size() - 1; p >= 0; p--) {
@@ -460,7 +476,11 @@ public final class WorldScene implements Player.Collider {
         terrainS.set("uFloodDmg", (float) clamp01((floodReach / 300.0) * (state.underwaterDays > 0 || !state.alive ? 1 : 0.4)));
         terrainS.set("uHarvested", state.harvested ? 1f : 0f);
         terrainS.set("uOverlay", overlay ? 1f : 0f);
-        terrainS.set("uRainUp", (float) upRain);
+        terrainS.set("uRainUp", (float) (drought ? farmRain : upRain));
+        terrainS.set("uRainAt", drought ? 0f : 24f, drought ? -10f : -640f);
+        terrainS.set("uArid", drought ? 1f : 0f);
+        terrainS.set("uFlatten", drought ? 1f : 0f);
+        terrainS.set("uParch", (float) parch);
         terrainS.set("uSoil", (float) clamp01(season.day(state.i).soil()));
         if (!skip("terrain")) terrainMesh.draw();
 
@@ -494,11 +514,12 @@ public final class WorldScene implements Player.Collider {
         double wind = 0.10 + storm * 0.95;
         double grassFrac = st.grass == 2 ? 1.0 : st.grass == 1 ? 0.45 : 0.0;
         double riceFrac = st.grass == 2 ? 1.0 : st.grass == 1 ? 0.55 : 0.3;
-        boolean lodged = state.flooded || !state.alive;
+        boolean lodged = state.flooded || (!state.alive && !drought);
         double lean = !state.alive ? 0.9 : state.flooded ? clamp01(0.3 + shownLevel * 0.6) : 0;
-        if (skip("foliage")) { } else if (state.harvested && state.alive) foliage.drawRice(0.11, 1.0, 0.0, 0.35, 0, wind, riceFrac, true);
-        else foliage.drawRice(0.14 + 0.95 * Math.min(1, cropMat), cropMat, Math.max(0, (cropMat - 0.55) / 0.45), state.alive ? 0 : 1, lean, wind, riceFrac, true);
-        if (!skip("foliage")) { foliage.drawGrass(wind, grassFrac); foliage.drawReeds(wind, st.grass == 0 ? 0.3 : 1.0); }
+        if (skip("foliage")) { } else if (state.harvested && state.alive) foliage.drawRice(0.11, 1.0, 0.0, 0.35, 0, wind, riceFrac, true, 0f);
+        else foliage.drawRice(0.14 + 0.95 * Math.min(1, cropMat) * (1 - 0.18 * wilt()), cropMat, Math.max(Math.max(0, (cropMat - 0.55) / 0.45), 0.85 * wilt()),
+                state.alive || drought ? 0 : 1, lean, wind, riceFrac, true, !state.alive && drought ? 1f : wilt());
+        if (!skip("foliage")) { foliage.drawGrass(wind, grassFrac, drought ? 0.55 + 0.35 * parch : 0); foliage.drawReeds(wind, st.grass == 0 ? 0.3 : 1.0, drought ? 0.5 + 0.4 * parch : 0); }
 
         // water
         glEnable(GL_BLEND);
@@ -517,7 +538,7 @@ public final class WorldScene implements Player.Collider {
         waterS.set("uProtect", 1f);
         waterS.set("uFlow", 0f, 0f);
         waterS.set("uYAdd", 0f);
-        waterS.set("uMeshY", (float) shownLevel);
+        waterS.set("uMeshY", (float) shownLevel - (drought ? (float) (0.3 + 0.55 * parch) : 0f));
         if (!skip("water")) waterMesh.draw();
         // the homestead pond
         waterS.set("uProtect", 0f);
@@ -536,7 +557,7 @@ public final class WorldScene implements Player.Collider {
 
         // rain, hill rain curtains and sprite particles
         common(weather.curtainShader(), cam);
-        weather.drawCurtains(cam, upRain);
+        weather.drawCurtains(cam, drought ? 0 : upRain);
         common(weather.rainShader(), cam);
         if (!overlay) weather.drawRain(cam, farmRain, 0.5 + storm * 0.9, 0.15);
         weather.drawParticles(cam, particles);

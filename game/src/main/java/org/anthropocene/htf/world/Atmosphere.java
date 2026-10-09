@@ -14,6 +14,7 @@ public final class Atmosphere {
     public final Vector3f sunDir = new Vector3f(), sunColor = new Vector3f();
     public final Vector3f zenith = new Vector3f(), horizon = new Vector3f(), ground = new Vector3f(), fog = new Vector3f();
     public float fogDensity, exposure = 1f, daylight = 1f;
+    public float dust;                  // 0..1 warm dusty haze of a dry season
 
     public void update(double dt, int timeMode, double storm, double flash) {
         if (timeMode >= 4) hour = (float) ((hour + dt * 0.04) % 24);   // a full day in about 10 real minutes
@@ -63,6 +64,14 @@ public final class Atmosphere {
         ground.set(new Vector3f(0.20f, 0.17f, 0.12f).mul(0.25f + 0.75f * dayGrey));
         fog.set(mix(h, new Vector3f(grey), 0.2f));
         fogDensity = 0.00085f + s * 0.0013f;
+        if (dust > 0.001f) {                                           // hot, dusty haze: warm and thick near the ground
+            Vector3f haze = new Vector3f(0.78f, 0.62f, 0.42f).mul(0.35f + 0.65f * Math.max(day, 0.25f));
+            horizon.set(mix(horizon, haze, dust * 0.40f));
+            zenith.set(mix(zenith, new Vector3f(zenith).mul(1.0f, 0.92f, 0.78f), dust * 0.6f));
+            fog.set(mix(fog, haze, dust * 0.7f));
+            fogDensity += dust * 0.0011f;
+            sunColor.mul(1 - 0.15f * dust);
+        }
         daylight = Math.max(day, 0.12f) * (1 - 0.55f * s);
         exposure = (0.95f + 0.45f * (1 - day)) * (1 + flash * 0.3f);
     }

@@ -1,5 +1,6 @@
 package org.anthropocene.htf.ui;
 
+import org.anthropocene.htf.core.I18n;
 import org.anthropocene.htf.gfx.Renderer2D;
 
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public final class Chart {
     public void draw(Renderer2D r, int x, int y, int w, int h, int mx, int my) {
         r.roundRect(x, y, w, h, 13, 0x14FFFFFF);
         r.roundRing(x, y, w, h, 13, 1f, BORDER);
-        r.text(title.toUpperCase(), x + 14, y + 11, LABEL, MUTED, false, true);
+        r.text(I18n.caps(title), x + 14, y + 11, LABEL, MUTED, false, true);
         // legend, on its own line under the title
         float lx = x + 14;
         for (Series se : series) {

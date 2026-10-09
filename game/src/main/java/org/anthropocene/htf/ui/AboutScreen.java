@@ -1,9 +1,12 @@
 package org.anthropocene.htf.ui;
 
+import org.anthropocene.htf.core.I18n;
 import org.anthropocene.htf.gfx.Renderer2D;
 import org.anthropocene.htf.sim.Config;
 import org.anthropocene.htf.sim.Season;
+import org.anthropocene.htf.sim.SeasonCatalog;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,31 +23,53 @@ public final class AboutScreen extends Screen {
     protected void init() {
         layoutCard(900, 660);
         blocks.clear();
-        Season s = game.hasSession() ? game.session().season : game.titleSeason();
-        Config c = Config.DEFAULT;
-        String pts = s == null ? "" : String.format("farm %.2f N %.2f E, upstream %.2f N %.2f E", s.points.farm().lat(), s.points.farm().lon(), s.points.upstream().lat(), s.points.upstream().lon());
-        blocks.add(new Block("What this game is for", "Farmers in flood-prone regions are already adapting: planting earlier, choosing shorter-duration varieties, raising embankments, watching the sky. "
+        blocks.add(new Block("What this game is for", "Farmers in flood-prone and drought-prone regions are already adapting: planting earlier, choosing shorter-duration or drought-tolerant varieties, raising embankments, irrigating at the right time, watching the sky. "
                 + "This game lets you try those decisions on a real season, with the NASA data that a farmer or an extension officer could actually use, and see what would have worked."));
-        blocks.add(new Block("Where the data comes from", s == null ? "" :
-                "NASA POWER Daily API (community AG): precipitation (PRECTOTCORR), maximum temperature (T2M_MAX) and root-zone soil wetness (GWETROOT), "
-                        + s.days.get(0).date() + " to " + s.days.get(s.length() - 1).date() + ". Points: " + pts + " (Sunamganj haor and the Meghalaya hills above it)."
-                        + (s.sample ? "\n\nTHIS COPY IS SAMPLE DATA, NOT REAL. Open the launcher and press 'Update NASA data' to download the real season." : "")));
-        blocks.add(new Block("How the model works",
-                "Water level is a simple bucket, in metres above the field: rain in the hills upstream (arriving " + c.lagDays + " days later) and rain on the farm fill it, drainage empties it.\n"
-                        + "A flash flood starts when the water rises above the embankment (" + c.bundStart + " m, +" + c.bundRaise + " m per raise, up to " + c.maxBundRaises + " raises). The crop dies after " + c.daysUnderwaterToKill + " days under water.\n"
-                        + "The satellite scout warns from the 3-day total of upstream rain: Watch at " + (int) c.watchMm + " mm, Flood Warning at " + (int) c.warningMm + " mm.\n"
-                        + "Rice matures linearly after transplanting (" + c.varieties.get("short").fieldDays() + " days for short-duration, " + c.varieties.get("long").fieldDays() + " for long-duration). You may harvest from "
-                        + (int) (c.minHarvestMaturity * 100) + "% maturity. Yield = maturity x the variety's potential (" + (int) (c.varieties.get("short").potential() * 100) + "% for short, " + (int) (c.varieties.get("long").potential() * 100) + "% for long; game parameters, not agronomic advice)."));
+        if (game.hasSession()) addScenario(game.session().season, game.session().cfg);
+        else for (SeasonCatalog.Entry e : SeasonCatalog.all()) {
+            try { Season se = SeasonCatalog.load(e.id()); addScenario(se, Config.forSeason(se)); } catch (IOException ex) { /* the scenario simply is not listed */ }
+        }
         blocks.add(new Block("What it leaves out, on purpose",
-                "One bucket for the whole field. No river routing, terrain or embankment failure. Rain from a single upstream point stands in for the whole catchment. Crop growth is linear: no fertiliser, pests or heat stress. "
-                        + "It is a learning game calibrated to one real event, not a forecast."));
+                "One bucket for the whole field, or one soil layer: no river routing, terrain, embankment failure, groundwater, canals or pumps. Rain from a single point stands in for the whole catchment or district. Crop growth is linear: no fertiliser, pests or disease.\n"
+                        + "It is a learning game calibrated to one real event per scenario, not a forecast."));
         blocks.add(new Block("How to play",
-                "Walk with WASD, jump with Space, double-tap Space to fly. Press P to start time. 1: raise the embankment (aim at it and click). 2: harvest (aim at the rice and click). "
+                "Walk with WASD, jump with Space, double-tap Space to fly. Press P to start time. 1: raise the embankment, or irrigate the rice in the drought scenario (aim and click). 2: harvest (aim at the rice and click).\n"
                         + "3 or M: NASA satellite view. 4 or E: scout dashboard. Right-click Rahim to talk. F3 shows debug data, F2 takes a screenshot."));
         blocks.add(new Block("Team Anthropocene",
-                "Alif, Safwat, Yasin, Zawad, Yaminur and Marwa. NASA Space Apps Challenge 2026, Chattogram, Bangladesh. Challenge: Field Shift. Data: NASA POWER. Font: DejaVu Sans. Every texture, model and sound in this game is generated by code."));
+                "Alif, Safwat, Yasin, Zawad, Yaminur and Marwa. NASA Space Apps Challenge 2026, Chattogram, Bangladesh. Challenge: Field Shift. Data: NASA POWER. Fonts: DejaVu Sans and Noto Sans Bengali. Every texture, model and sound in this game is generated by code."));
+
         button("Done", cardX + 32, cardY + cardH - 66, cardW - 64, this::onEscape).primary();
     }
+
+    private void addScenario(Season s, Config c) {
+        boolean dry = c.isDrought();
+        String where = dry ? "Barind Tract" : "Sunamganj haor";
+        String farm = I18n.f("farm {} N {} E", f2(s.points.farm().lat()), f2(s.points.farm().lon()));
+        String pts = dry ? farm : I18n.f("farm {} N {} E, upstream {} N {} E", f2(s.points.farm().lat()), f2(s.points.farm().lon()), f2(s.points.upstream().lat()), f2(s.points.upstream().lon()));
+        String data = I18n.f("NASA POWER Daily API (community AG): precipitation (PRECTOTCORR), maximum temperature (T2M_MAX) and root-zone soil wetness (GWETROOT), {} to {}. Points: {} ({}).",
+                s.days.get(0).date(), s.days.get(s.length() - 1).date(), pts, dry ? "the Barind Tract in north-western Bangladesh" : "Sunamganj haor and the Meghalaya hills above it");
+        if (s.sample) data += "\n" + I18n.t("THIS COPY IS SAMPLE DATA, NOT REAL. Open the launcher and press 'Update NASA data' to download the real season.");
+        blocks.add(new Block(I18n.f("Where the data comes from: {}", where), data));
+        Config.Variety shortV = c.varieties.get("short"), longV = c.varieties.get("long");
+        String model;
+        if (dry) {
+            model = I18n.f("The soil is a simple store: NASA's root-zone wetness plus any irrigation you add, which fades over a few days. The rice is stressed whenever that wetness falls below its stress line ({} for standard, {} for drought-tolerant).",
+                    f2(longV.stressSoil()), f2(shortV.stressSoil()))
+                    + "\n" + I18n.f("Stress piles up on dry days, fastest during flowering and grain filling, and more when it is hotter than {} C. The crop fails when stress reaches 100%; otherwise the harvest is reduced by the stress it has collected.", (int) c.heatC)
+                    + "\n" + I18n.f("The satellite scout warns from the rain of the last 7 days and today's soil wetness: Watch under {} mm of rain, Drought Warning under {} mm.", (int) c.dryWatchMm, (int) c.dryWarnMm)
+                    + "\n" + I18n.f("Irrigating costs Tk {} and one load from the village tank ({} loads at most; rain refills it). Rice matures linearly after transplanting ({} days drought-tolerant, {} standard). You may harvest from {}% maturity. Yield = maturity x the variety's potential ({}% tolerant, {}% standard) x what the stress leaves; game parameters, not agronomic advice.",
+                    c.irrigationCost, (int) c.tankMax, shortV.fieldDays(), longV.fieldDays(), (int) (c.minHarvestMaturity * 100), (int) (shortV.potential() * 100), (int) (longV.potential() * 100));
+        } else {
+            model = I18n.f("Water level is a simple bucket, in metres above the field: rain in the hills upstream (arriving {} days later) and rain on the farm fill it, drainage empties it.", c.lagDays)
+                    + "\n" + I18n.f("A flash flood starts when the water rises above the embankment ({} m, +{} m per raise, up to {} raises). The crop dies after {} days under water.", c.bundStart, c.bundRaise, c.maxBundRaises, c.daysUnderwaterToKill)
+                    + "\n" + I18n.f("The satellite scout warns from the 3-day total of upstream rain: Watch at {} mm, Flood Warning at {} mm.", (int) c.watchMm, (int) c.warningMm)
+                    + "\n" + I18n.f("Rice matures linearly after transplanting ({} days for short-duration, {} for long-duration). You may harvest from {}% maturity. Yield = maturity x the variety's potential ({}% for short, {}% for long; game parameters, not agronomic advice).",
+                    shortV.fieldDays(), longV.fieldDays(), (int) (c.minHarvestMaturity * 100), (int) (shortV.potential() * 100), (int) (longV.potential() * 100));
+        }
+        blocks.add(new Block(I18n.f("How the model works: {}", where), model));
+    }
+
+    private static String f2(double v) { return String.format(java.util.Locale.ROOT, "%.2f", v); }
 
     @Override
     public void scroll(int mx, int my, double dy) { scroll = Math.max(0, Math.min(Math.max(0, contentH - (cardH - 170)), scroll - dy * 30)); }

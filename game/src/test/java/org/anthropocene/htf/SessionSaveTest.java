@@ -40,6 +40,29 @@ class SessionSaveTest {
         assertTrue(b.drainEvents().isEmpty(), "restored history is not news");
     }
 
+    @Test void droughtSessionRestoresWithItsIrrigation() throws IOException {
+        Season dry = SeasonCatalog.load("barind-2022");
+        Session a = new Session(dry, Session.MODE_SCOUT, "long", "Dry test");
+        assertTrue(a.cfg.isDrought());
+        a.timePaused = false;
+        for (int i = 0; i < 95; i++) a.tick(1.0);
+        assertTrue(a.act(Engine.ActionType.IRRIGATE).ok());
+        for (int i = 0; i < 6; i++) a.tick(1.0);
+        assertTrue(a.act(Engine.ActionType.IRRIGATE).ok());
+        assertFalse(a.act(Engine.ActionType.RAISE_BUND).ok(), "no bund in the drought scenario");
+
+        SaveManager.save(a.toSave());
+        SaveManager.SaveData loaded = SaveManager.list().stream().filter(d -> d.id.equals(a.id)).findFirst().orElseThrow();
+        assertEquals("barind-2022", loaded.seasonId);
+        Session b = Session.restore(dry, loaded);
+        assertEquals(a.state.i, b.state.i);
+        assertEquals(a.state.coins, b.state.coins);
+        assertEquals(a.state.tank, b.state.tank, 1e-12);
+        assertEquals(a.state.moisture, b.state.moisture, 1e-12);
+        assertEquals(a.state.stressLoad, b.state.stressLoad, 1e-12);
+        assertEquals(a.state.events, b.state.events);
+    }
+
     @Test void rahimModeCannotAct() throws IOException {
         Session s = new Session(season(), Session.MODE_RAHIM, "short", "Watch");
         assertEquals("long", s.variety);

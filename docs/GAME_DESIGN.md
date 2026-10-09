@@ -5,7 +5,8 @@
 
 ## The idea in one line
 
-You farm rice in the Sunamganj haor and replay a real spring flash flood. The satellite data decides what is possible;
+You farm rice and replay a real hazard: a spring flash flood in the Sunamganj haor, or a drought that arrives while the
+rice is flowering in the Barind Tract. The satellite data decides what is possible;
 your decisions decide what you save. Afterwards the game replays every alternative on the same weather, so the lesson is
 "what would have worked", not "you lost".
 
@@ -13,15 +14,34 @@ your decisions decide what you save. Afterwards the game replays every alternati
 
 | Decision | Where it happens | What it teaches |
 |---|---|---|
-| Rice variety (short or long duration) | Plan the season | Ripening earlier can beat the flood; it costs yield potential |
+| Rice variety (short or long duration; tolerant or standard in the drought) | Plan the season | Ripening earlier can beat the flood, tolerance can beat the dry spell; both cost yield potential |
 | Transplanting date | Plan the season | The calendar is an adaptation, not just a habit |
-| Watching the NASA scout | Satellite view, dashboard, HUD | Rain in the hills upstream reaches the haor about two days later |
-| Raising the embankment | In the world (aim and click) | Defences buy time but have a limit |
+| Watching the NASA scout | Satellite view, dashboard, HUD | Rain in the hills upstream reaches the haor about two days later; when rain stops, the soil data shows the dry spell building |
+| Raising the embankment (flood) or irrigating from the village tank (drought) | In the world (aim and click) | Defences buy time but have a limit; water is a budget to spend at the right weeks |
 | Harvesting early (from 80% maturity) | In the world | A warning can save part of the crop |
 | Reading the debrief | End screen | Warning lead time, your result against the farmer who got none, and a grid of every variety and date with and without a warning |
 
 The debrief is the educational payload. It is computed by replaying the real weather file, not scripted, so it stays
 true when the real NASA data replaces the sample data.
+
+## Two scenarios, one engine
+
+| | Sunamganj haor, boro 2017 | Barind Tract, Aman 2022 |
+|---|---|---|
+| Hazard | Flash flood from upstream rain | Dry spell during flowering |
+| NASA signal | Upstream rain, 3-day total | Farm rain over 7 days and root-zone soil wetness |
+| What you control | Embankment height, early harvest | Irrigation from a limited tank, early harvest |
+| Varieties | Short (90 days, 85%) or long (115 days, 100%) | Drought-tolerant (100 days, 88%) or standard (120 days, 100%) |
+| Look | Green paddy, rain, floodwater | Red soil, dust haze, baked mud, wilting rice |
+
+Both run on the same pure engine (`sim/Engine.java`), the same debrief and the same planting-window analysis.
+
+## Bengali
+
+The interface can be switched to Bengali in Options > Language (the choice is saved). Text is shaped by the JDK's text
+layout with Noto Sans Bengali, so conjuncts and vowel signs render correctly; digits and month names are Bengali too.
+Translations live in `game/src/main/resources/lang/bn.txt` (English phrase => Bengali, `{}` for values). The launcher
+window is still English.
 
 ## NASA data used
 
@@ -34,7 +54,7 @@ NASA POWER Daily API, community AG, at two points (see `docs/DATA.md`):
 | `T2M_MAX` | Shown on the dashboard and the HUD |
 | `GWETROOT` (root-zone soil wetness) | Shown on the dashboard and as a layer in the satellite view |
 
-The satellite view labels the real coordinates of both points and draws the flow from the hills to the farm.
+The satellite view labels the real coordinates of the points and, in the flood scenario, draws the flow from the hills to the farm.
 POWER is global, so the same engine works anywhere by changing coordinates (`data-pipeline/regions.json`).
 
 ## How honest the model is
@@ -59,6 +79,7 @@ HDR post chain (bloom, ACES tone mapping). The interface is drawn with anti-alia
 
 ## Not done yet
 
-- Other hazards in `regions.json` (coastal salinity, Barind drought) need their own mechanics.
-- Bengali text needs a shaping engine (HarfBuzz); the current text renderer cannot shape Bengali conjuncts correctly.
-- The water model has not been calibrated to the documented flood date because the sandbox could not download the real data.
+- Coastal salinity (`regions.json`) still needs its own mechanics.
+- The Bengali translation was written by an AI assistant and has not been reviewed by a native speaker; the launcher window is still English.
+- Both scenarios run on SAMPLE data until the real NASA files are downloaded, and neither model has been calibrated to a documented event, because the sandbox could not reach NASA.
+- The game has only been run on Linux with software rendering; Windows, macOS and real GPU/audio testing are still to do.

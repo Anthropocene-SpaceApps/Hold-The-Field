@@ -10,12 +10,29 @@ uniform float uHarvested;    // 1 when the neighbours have harvested
 uniform float uOverlay;      // 1 = satellite data layer
 uniform float uRainUp;       // 0..1 upstream rain
 uniform float uSoil;         // 0..1 soil wetness
+uniform vec2  uRainAt;       // centre of the rain layer in the satellite overlay
+uniform float uArid;         // 1 in the drought scenario: red soil, dry scrub
+uniform float uParch;        // 0..1 how parched the ground is today
 out vec4 frag;
 
 float segDist(vec2 p, vec2 a, vec2 b) {
     vec2 pa = p - a, ba = b - a;
     float t = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
     return length(pa - ba * t);
+}
+
+// 1 on dry clods, 0 on the cracks between them
+float crackMask(vec2 p, float scale) {
+    vec2 vp = p * scale;
+    vec2 gi = floor(vp), gf = fract(vp);
+    float md = 9.0, md2 = 9.0;
+    for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+        vec2 g = vec2(float(i), float(j));
+        vec2 o = hash22(gi + g);
+        float dd = length(g + o - gf);
+        if (dd < md) { md2 = md; md = dd; } else if (dd < md2) md2 = dd;
+    }
+    return sstep(0.0, 0.12, md2 - md);
 }
 
 vec3 cropColor(float mat, float r) {
@@ -45,6 +62,9 @@ void main() {
     vec3 dryGrass = mix(vec3(0.30, 0.27, 0.10), vec3(0.40, 0.33, 0.13), gn);
     vec3 albedo = mix(grass, dryGrass, sstep(0.55, 0.9, gn2) * 0.7);
     float rough = 0.85;
+    // the Barind: red-brown soil and dry scrub instead of lush grass
+    vec3 redSoil = mix(vec3(0.48, 0.30, 0.18), vec3(0.62, 0.42, 0.26), gn) * mix(0.85, 1.15, gn2);
+    albedo = mix(albedo, mix(redSoil, dryGrass, 0.35 + 0.3 * gn2), uArid * 0.8);
 
     // ---------- floodplain patchwork of paddy fields
     float plain = sstep(-34.0, -30.0, P.z) * (1.0 - sstep(360.0, 420.0, abs(P.x)));
@@ -60,6 +80,7 @@ void main() {
     vec3 crop = cropColor(uCrop + (cr - 0.5) * 0.1, cr);
     crop = mix(crop, vec3(0.60, 0.50, 0.30), uHarvested);               // stubble after harvest
     crop = mix(crop, vec3(0.22, 0.17, 0.10), uFloodDmg * 0.8);           // drowned and silted
+    crop = mix(crop, mix(vec3(0.50, 0.42, 0.22), vec3(0.66, 0.56, 0.32), cr), uParch * 0.85);   // wilted fields
     crop *= 0.82 + 0.28 * rows;
     albedo = mix(albedo, crop, isField);
     rough = mix(rough, 0.9, isField);
@@ -68,6 +89,9 @@ void main() {
     vec2 pd = max(abs(P.xz - vec2(0.0, 0.0)) - vec2(30.0, 22.0), vec2(0.0));
     float inPlot = 1.0 - sstep(0.0, 0.9, length(pd));
     vec3 mud = mix(vec3(0.075, 0.055, 0.035), vec3(0.11, 0.085, 0.055), fbm3(P.xz * 1.7));
+    // dry spell: the puddled mud bakes pale and cracks
+    vec3 baked = mix(vec3(0.45, 0.35, 0.24), vec3(0.58, 0.47, 0.33), fbm3(P.xz * 0.9)) * mix(0.55, 1.0, crackMask(P.xz, 1.6));
+    mud = mix(mud, baked, uParch);
     albedo = mix(albedo, mud, inPlot);
     rough = mix(rough, 0.35, inPlot * 0.7);
 
@@ -110,6 +134,7 @@ void main() {
     vec3 hillCol = mix(forest, scrub, sstep(40.0, 160.0, P.y) * 0.6);
     vec3 rock = mix(vec3(0.30, 0.27, 0.23), vec3(0.45, 0.41, 0.35), fbm3(P.xz * 0.3));
     hillCol = mix(hillCol, rock, sstep(0.30, 0.55, slope) * 0.9);
+    hillCol = mix(hillCol, mix(scrub * vec3(1.25, 1.0, 0.7), rock, 0.35), uArid * 0.75);   // dry scrub and rock
     albedo = mix(albedo, hillCol, hill);
 
     // river sand and gravel
@@ -126,7 +151,7 @@ void main() {
         vec3 soilCol = mix(vec3(0.55, 0.42, 0.22), vec3(0.10, 0.35, 0.85), uSoil);
         float luminance_ = dot(albedo, vec3(0.3, 0.59, 0.11));
         albedo = mix(albedo, soilCol * (0.5 + 0.5 * luminance_), 0.38);
-        vec2 rc = vec2(24.0, -640.0);
+        vec2 rc = uRainAt;
         float rr = length((P.xz - rc) * vec2(0.8, 1.0)) / 260.0;
         float cloud = (1.0 - sstep(0.35, 1.0, rr + (fbm(P.xz * 0.02) - 0.5) * 0.5)) * uRainUp;
         vec3 ramp = mix(vec3(0.1, 0.4, 1.0), mix(vec3(0.7, 0.2, 0.9), vec3(1.0, 0.25, 0.2), sstep(0.55, 1.0, cloud)), sstep(0.25, 0.6, cloud));

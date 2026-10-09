@@ -261,6 +261,11 @@ public final class Launcher {
         p.add(new JLabel("Memory (RAM) limit"), c); c.gridx = 1; p.add(ramBox, c);
 
         c.gridx = 0; c.gridy++;
+        JComboBox<String> langBox = new JComboBox<>(new String[]{"English", "Bangla (বাংলা)"});
+        langBox.setSelectedIndex("bn".equals(settings.language) ? 1 : 0);
+        p.add(new JLabel("Game language"), c); c.gridx = 1; p.add(langBox, c);
+
+        c.gridx = 0; c.gridy++;
         JCheckBox fs = new JCheckBox("Start in fullscreen", settings.fullscreen);
         p.add(fs, c); c.gridx = 1;
         JCheckBox vsync = new JCheckBox("VSync", settings.vsync);
@@ -290,6 +295,7 @@ public final class Launcher {
             }
             cfg.ramMb = ramMb[Math.max(0, ramBox.getSelectedIndex())];
             cfg.closeOnLaunch = close.isSelected();
+            settings.language = langBox.getSelectedIndex() == 1 ? "bn" : "en";
             settings.fullscreen = fs.isSelected();
             settings.vsync = vsync.isSelected();
             settings.save(); cfg.save();

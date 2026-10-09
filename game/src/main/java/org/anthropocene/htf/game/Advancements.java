@@ -25,7 +25,9 @@ public final class Advancements {
             new Adv("ahead", "Ahead of the Water", "Bring in the harvest before the flood arrives"),
             new Adv("dry", "Dry Feet", "Survive a flash flood with your crop standing"),
             new Adv("revenge", "Better Than Rahim's Way", "Save more rice than the farmer who gets no warning"),
-            new Adv("lesson", "A Hard Lesson", "Lose a crop to the flood"),
+            new Adv("lesson", "A Hard Lesson", "Lose a crop to the flood or the drought"),
+            new Adv("thirst", "Quench the Field", "Irrigate your rice from the village tank"),
+            new Adv("drops", "Every Drop Counts", "Bring the rice through a dry spell and keep most of the harvest"),
             new Adv("full", "Golden Season", "Harvest every last grain"));
 
     private static class Profile { Set<String> unlocked = new LinkedHashSet<>(); }
@@ -59,16 +61,16 @@ public final class Advancements {
     public int count() { return profile.unlocked.size(); }
 
     /** Advancements earned at the moment of a sim event. */
-    public List<Adv> onEvent(String type, GameState s) {
+    public List<Adv> onEvent(String type, GameState s, boolean drought) {
         List<Adv> got = new ArrayList<>();
         switch (type) {
             case "warning" -> add(got, grant("eyes"));
-            case "action" -> add(got, grant("wall"));
+            case "action" -> add(got, grant(drought ? "thirst" : "wall"));
             case "loss" -> add(got, grant("lesson"));
             case "harvest" -> {
                 boolean floodedYet = s.events.stream().anyMatch(e -> e.type().equals("flood"));
                 boolean warned = s.events.stream().anyMatch(e -> e.type().equals("warning"));
-                if (!floodedYet && warned && s.yieldPct > 0) add(got, grant("ahead"));
+                if (!drought && !floodedYet && warned && s.yieldPct > 0) add(got, grant("ahead"));
                 if (s.yieldPct >= 0.999) add(got, grant("full"));
             }
             default -> { }
@@ -77,10 +79,11 @@ public final class Advancements {
     }
 
     /** Advancements decided only once the run is over. */
-    public List<Adv> onEnd(GameState s, GameState baseline, boolean scoutMode) {
+    public List<Adv> onEnd(GameState s, GameState baseline, boolean scoutMode, boolean drought) {
         List<Adv> got = new ArrayList<>();
         Engine.Summary sum = Engine.summarize(s);
-        if (s.alive && sum.floodDate() != null) add(got, grant("dry"));
+        if (drought) { if (s.alive && s.stressDays > 0 && s.yieldPct >= 0.6) add(got, grant("drops")); }
+        else if (s.alive && sum.floodDate() != null) add(got, grant("dry"));
         if (scoutMode && s.yieldPct > baseline.yieldPct) add(got, grant("revenge"));
         return got;
     }

@@ -47,6 +47,8 @@ final class DevCapture {
         String set = System.getProperty("htf.capture.set", "all");
         boolean menus = set.equals("all") || set.equals("menus"), play = set.equals("all") || set.equals("game");
         if (set.equals("quick")) { quick(); return; }
+        if (set.equals("dry")) { dry(); return; }
+        if (set.equals("plan")) { plan(); return; }
         Screen[] title = new Screen[1];
         steps.add(wait(25));
         if (menus) {
@@ -153,6 +155,52 @@ final class DevCapture {
         steps.add(run(() -> { ff(st -> st.over()); }));
         steps.add(until(() -> game.screen() instanceof EndScreen, 3000));
         steps.add(wait(6)); steps.add(shot("q6-end"));
+        steps.add(run(() -> game.window().requestClose()));
+    }
+
+    /** The plan screen, then a click on the second scenario card (the widgets are rebuilt for that scenario). */
+    private void plan() {
+        steps.add(wait(10));
+        steps.add(run(() -> game.setScreen(child(new PlanSeasonScreen(), game.screen()))));
+        steps.add(wait(3)); steps.add(shot("p0-haor"));
+        steps.add(run(() -> { game.screen().mouseDown(600, 130, org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT); game.screen().mouseUp(600, 130, org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT); }));
+        steps.add(wait(4)); steps.add(shot("p1-barind"));
+        steps.add(run(() -> game.window().requestClose()));
+    }
+
+    /** The drought scenario: a farmer with no warning (the visuals), then the scout with irrigation. */
+    private void dry() {
+        steps.add(run(() -> {
+            try { game.startSession(new Session(SeasonCatalog.load("barind-2022"), Session.MODE_RAHIM, "long", "Dry Farm", "2022-07-25")); }
+            catch (IOException e) { throw new IllegalStateException(e); }
+        }));
+        steps.add(wait(4));
+        steps.add(run(() -> { ff(st -> st.i >= 40 + st.startIndex); game.session().timePaused = true; fly(14f, 48f, 1.7f, 0.12f, -0.05f); }));
+        steps.add(wait(14)); steps.add(shot("d0-green"));
+        steps.add(run(() -> { ff(st -> st.status.equals("warning")); game.session().timePaused = true; }));
+        steps.add(wait(40)); steps.add(shot("d1-warning"));
+        steps.add(run(() -> { ff(st -> st.stressDays >= 12); game.session().timePaused = true; fly(10f, 40f, 2.2f, 0.1f, -0.08f); }));
+        steps.add(wait(40)); steps.add(shot("d2-stress"));
+        steps.add(run(() -> game.setScreen(new DashboardScreen(game.session()))));
+        steps.add(wait(3)); steps.add(shot("d3-dashboard"));
+        steps.add(run(() -> { game.setScreen(null); game.toggleSatellite(); }));
+        steps.add(wait(8)); steps.add(shot("d4-satellite"));
+        steps.add(run(() -> game.toggleSatellite()));
+        steps.add(run(() -> { ff(st -> st.over()); }));
+        steps.add(until(() -> game.screen() instanceof EndScreen, 3000));
+        steps.add(wait(6)); steps.add(shot("d5-end"));
+        steps.add(run(() -> {
+            game.quitToTitle();
+            try { game.startSession(new Session(SeasonCatalog.load("barind-2022"), Session.MODE_SCOUT, "long", "Scout Farm", "2022-07-25")); }
+            catch (IOException e) { throw new IllegalStateException(e); }
+        }));
+        steps.add(wait(4));
+        steps.add(run(() -> {
+            ff(st -> st.status.equals("warning")); game.session().timePaused = true;
+            for (int k = 0; k < 2; k++) game.session().act(org.anthropocene.htf.sim.Engine.ActionType.IRRIGATE);
+            game.scene().snap(); fly(14f, 48f, 1.7f, 0.12f, -0.05f);
+        }));
+        steps.add(wait(30)); steps.add(shot("d6-irrigated"));
         steps.add(run(() -> game.window().requestClose()));
     }
 

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Hold the Field
+GenericName=Climate farming game
+Comment=A farming game where the climate raids your fields and NASA satellite data is your scout
+Exec=HoldTheField
+Icon=hold-the-field
+Terminal=false
+Categories=Game;Simulation;Education;
+Keywords=farming;climate;NASA;education;

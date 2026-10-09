@@ -1,26 +1,82 @@
-# Hold the Field *(working title)*
+# Hold the Field
 
-**A strategy game where the climate raids your farm and NASA satellite data is your scout.**
+[![game](https://github.com/Anthropocene-SpaceApps/Hold-The-Field/actions/workflows/game.yml/badge.svg)](https://github.com/Anthropocene-SpaceApps/Hold-The-Field/actions/workflows/game.yml)
+[![release](https://github.com/Anthropocene-SpaceApps/Hold-The-Field/actions/workflows/release.yml/badge.svg)](https://github.com/Anthropocene-SpaceApps/Hold-The-Field/actions/workflows/release.yml)
 
-NASA Space Apps Challenge 2026 · Chattogram, Bangladesh
+**A farming game where the climate raids your fields and NASA satellite data is your scout.**
+Two real hazards, two regions of Bangladesh, English and Bengali.
+
+NASA Space Apps Challenge 2026 · Chattogram, Bangladesh · **Team Anthropocene**
 **Challenge:** [Field Shift: Adapting Farms with NASA Data](https://www.spaceappschallenge.org/2026/challenges/)
-**Live demo:** _add Vercel link_ · **Video:** _add YouTube link_ · **Team page:** _add NASA team link_
+**Video:** _add YouTube link_ · **Team page:** _add NASA team link_
+
+![Title screen: ripe paddy under a darkening sky](docs/images/title.jpg)
 
 ---
 
+## Download and play
+
+Get the build for your system from the **[Releases page](https://github.com/Anthropocene-SpaceApps/Hold-The-Field/releases)**. No Java needed.
+
+| System | File | How to start it |
+|---|---|---|
+| Windows | `.msi` installer, or the portable `.zip` | Install, or unzip and run `Hold the Field.exe`. SmartScreen: More info → Run anyway |
+| macOS | `.dmg` (Apple silicon or Intel) | Drag to Applications. First start: right-click → Open |
+| Linux | `.AppImage` (or `.deb`, or portable `.tar.gz`) | `chmod +x HoldTheField-*.AppImage && ./HoldTheField-*.AppImage` |
+| Anything with Java 21 | `HoldTheField-<version>.jar` | `java -jar HoldTheField-<version>.jar` |
+
+You need a GPU driver with **OpenGL 3.3** (anything from the last ten years). The builds are not code-signed, hence the
+warnings; see [`docs/RELEASING.md`](docs/RELEASING.md). Press **PLAY** in the launcher.
+
 ## The idea
 
-Rahim farms rice in the Sunamganj haor. His father taught him the sky always warns before it takes. In 2017, a flash flood took his harvest days before it was ready, with no warning he could see.
+Rahim farms rice in Bangladesh. His father taught him the sky always warns before it takes. In 2017 a flash flood took
+his harvest days before it was ready, with no warning he could see. NASA satellites *did* see the rain building in the
+hills upstream.
 
-NASA satellites *did* see the rain building in the hills upstream. In this game you replay that real season, day by day, on real NASA data. The **Satellite Scout** shows what NASA measured, and you decide: raise the bund, plant a faster variety, or harvest early. Then compare your result with *Rahim's way*: same field, same rain, no warning.
+In this game you replay a real season, day by day. You plan it first (which rice, which transplanting date), then farm
+it with the **Satellite Scout** watching the data. Afterwards the game replays every alternative on the same weather, so
+the lesson is *what would have worked*, not *you lost*.
 
-How the game answers the challenge, what players learn and what is still missing: [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md).
+Full design, what players learn and what is still missing: [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md).
+
+## Two scenarios
+
+| | Sunamganj haor, boro 2017 | Barind Tract, Aman 2022 |
+|---|---|---|
+| Hazard | Flash flood from rain in the Meghalaya hills | A dry spell while the rice is flowering |
+| The scout reads | Upstream rain (arrives two days later) | Farm rain and root-zone soil wetness |
+| You can | Raise the embankment, harvest early | Irrigate from a limited village tank, harvest early |
+| Varieties | Short (90 days) or long (115 days) | Drought-tolerant or standard |
+
+| | |
+|---|---|
+| ![Plan the season](docs/images/plan-the-season.jpg) | ![Flood warning](docs/images/flood-warning.jpg) |
+| **Plan the season.** Pick the scenario, the variety and the transplanting date. | **The scout speaks.** Rain upstream becomes a warning two days before the water arrives. |
+| ![The flood](docs/images/flood.jpg) | ![NASA satellite view](docs/images/satellite-view.jpg) |
+| **The flood.** Water over the embankment, drowned rice, rain on muddy water. | **NASA satellite view.** Rain and soil wetness layers at the real coordinates. |
+| ![Drought: the green season](docs/images/drought-green.jpg) | ![Drought: the dry spell](docs/images/drought-stress.jpg) |
+| **Barind, early season.** Wet fields, soil gauge full. | **The dry spell.** Baked mud, wilting rice, soil below the stress line, red scout alert. |
+| ![Drought debrief](docs/images/drought-debrief.jpg) | ![Dashboard](docs/images/dashboard.jpg) |
+| **Debrief.** Warning lead time, your result against the no-warning farmer, and every plan on the same weather. | **Scout dashboard.** Interactive charts of everything NASA measured so far. |
+
+### In Bengali
+
+Options → **Language** (or the launcher's Settings tab) switches the whole game to বাংলা: proper conjuncts and vowel
+signs, Bengali digits and month names.
+
+| | |
+|---|---|
+| ![Bengali HUD](docs/images/bengali-hud.jpg) | ![Bengali debrief](docs/images/bengali-debrief.jpg) |
+
+The translation was written by an AI assistant and **needs a native speaker's review** before it is presented as final
+(`game/src/main/resources/lang/bn.txt`).
 
 ## Who it helps
 
 - **Students** in farming regions, learning how climate is changing their land
-- **Farming families**, seeing why short-duration varieties and early warnings matter
-- **Agricultural extension officers**, who need to *show*, not just tell
+- **Farming families**, seeing why short-duration or tolerant varieties, planting dates, irrigation timing and early warnings matter
+- **Agricultural extension officers**, who need to *show*, not just tell. The debrief exports as a text report and a CSV.
 
 NASA POWER is global, so the same engine works for any farm on Earth by changing a latitude and longitude.
 
@@ -28,26 +84,42 @@ NASA POWER is global, so the same engine works for any farm on Earth by changing
 
 | Dataset | Parameters | Used for |
 |---|---|---|
-| NASA POWER Daily API (community AG) | `PRECTOTCORR` precipitation, `T2M_MAX` max temperature, `GWETROOT` root-zone soil wetness | Daily weather that drives water level, Scout warnings and readings |
+| NASA POWER Daily API (community AG) | `PRECTOTCORR` precipitation, `T2M_MAX` max temperature, `GWETROOT` root-zone soil wetness | Daily weather that drives the water level, the soil, the scout warnings, the dashboard and the satellite view |
 
-Points: farm 25.07°N 91.40°E (Sunamganj haor); upstream 25.27°N 91.73°E (Cherrapunji/Sohra, Meghalaya).
+Points: haor farm 25.07°N 91.40°E and its upstream catchment 25.27°N 91.73°E (Cherrapunji/Sohra, Meghalaya); Barind farm 24.60°N 88.50°E.
 How the data becomes gameplay, and every simplification: [`docs/DATA.md`](docs/DATA.md).
 
-## Run it
+> **The repository ships SAMPLE data**, clearly labelled in the game, so it always starts. The Barind sample is an
+> invented dry spell, not the weather of 2022. Replace both with the real seasons: launcher → **NASA Data** →
+> **Update NASA data** (needs internet once, then works offline).
 
-**The game (Java, realistic 3D, with launcher, menus and settings)** lives in [`game/`](game/README.md):
+## Build and run from source
+
+You need **Java 21** and Maven.
 
 ```bash
-cd game && mvn package && java -jar target/hold-the-field.jar
+git clone https://github.com/Anthropocene-SpaceApps/Hold-The-Field.git
+cd Hold-The-Field/game
+mvn package
+java -jar target/hold-the-field.jar     # opens the launcher; press PLAY
 ```
 
-**The web prototype** (the original browser version, kept as a no-install demo) is the rest of this repo. No install needed:
+Controls, graphics options and the code layout: [`game/README.md`](game/README.md).
+Native installers and the AppImage: [`docs/RELEASING.md`](docs/RELEASING.md).
+CI (`.github/workflows/game.yml`) builds the jar and runs the tests on every push; `release.yml` builds the downloads when a `v*` tag is pushed.
+
+**The web prototype** (the original browser version, kept as a no-install demo) is the top-level `index.html`, `src/`, `styles/` and `data/`:
 
 ```bash
 python3 -m http.server 5173     # then open http://localhost:5173
-node --test                     # run the simulation tests
-python3 data-pipeline/fetch_power.py --region haor --start 20161201 --end 20170430 --out data/haor-2017.json
-node scripts/calibrate.mjs data/haor-2017.json --target YYYY-MM-DD   # fit the water model to the documented flood date
+node --test                     # run the prototype's simulation tests
+```
+
+Fetch real data from the command line instead of the launcher:
+
+```bash
+python3 data-pipeline/fetch_power.py --region haor   --start 20161201 --end 20170430 --out data/haor-2017.json
+python3 data-pipeline/fetch_power.py --region barind --start 20220625 --end 20221215 --out data/barind-2022.json
 ```
 
 ## Team Anthropocene
@@ -63,8 +135,8 @@ node scripts/calibrate.mjs data/haor-2017.json --target YYYY-MM-DD   # fit the w
 
 ## Use of AI
 
-See [`docs/AI_USAGE.md`](docs/AI_USAGE.md). Every AI tool we used is listed there with its purpose.
+See [`docs/AI_USAGE.md`](docs/AI_USAGE.md). Every AI tool we used is listed there with its purpose. All textures, models and sounds in the game are generated by code.
 
 ## License
 
-MIT. Everything built during Space Apps stays open source.
+MIT. Everything built during Space Apps stays open source. Fonts: DejaVu Sans (free licence) and Noto Sans Bengali (SIL OFL), see `game/src/main/resources/fonts/`.

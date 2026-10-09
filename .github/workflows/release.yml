@@ -1,0 +1,112 @@
+name: release
+
+# Builds the downloadable game: Windows installer, macOS disk image, Linux AppImage and .deb, plus a portable jar.
+# Push a tag such as v1.0.0 to publish a GitHub Release, or run it by hand to just get the build artifacts.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version number for the file names (digits and dots, for example 1.0.0)
+        default: 1.0.0
+
+permissions:
+  contents: write
+
+env:
+  VERSION: ${{ github.event.inputs.version || '1.0.0' }}
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux,       os: ubuntu-22.04,  tests: true }
+          - { name: windows,     os: windows-latest }
+          - { name: macos-arm64, os: macos-latest }
+          - { name: macos-x64,   os: macos-13 }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Version from the tag
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"; fi
+
+      - name: Build the jar (and run the tests on Linux)
+        run: |
+          if [[ "${{ matrix.tests }}" == "true" ]]; then mvn -B -f game/pom.xml verify; else mvn -B -f game/pom.xml package -DskipTests; fi
+
+      - name: Package (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y fakeroot
+          packaging/build-appimage.sh
+          packaging/package.sh installer
+          mkdir -p dist
+          cp game/target/jpackage/installer/*.deb "dist/HoldTheField-$VERSION-linux-amd64.deb"
+          cp game/target/hold-the-field.jar "dist/HoldTheField-$VERSION.jar"
+          tar -C game/target/jpackage/app-image -czf "dist/HoldTheField-$VERSION-linux-x64-portable.tar.gz" HoldTheField
+
+      - name: Package (Windows)
+        if: matrix.name == 'windows'
+        run: |
+          if ! command -v candle.exe >/dev/null 2>&1; then
+            for d in "/c/Program Files (x86)/WiX Toolset v3.14/bin" "/c/Program Files (x86)/WiX Toolset v3.11/bin"; do [ -d "$d" ] && export PATH="$d:$PATH"; done
+          fi
+          if ! command -v candle.exe >/dev/null 2>&1; then
+            choco install wixtoolset --no-progress -y
+            export PATH="/c/Program Files (x86)/WiX Toolset v3.14/bin:$PATH"
+          fi
+          packaging/package.sh app-image
+          packaging/package.sh installer
+          mkdir -p dist
+          cp game/target/jpackage/installer/*.msi "dist/HoldTheField-$VERSION-windows-x64.msi"
+          powershell -NoProfile -Command "Compress-Archive -Path 'game/target/jpackage/app-image/Hold the Field' -DestinationPath 'dist/HoldTheField-$env:VERSION-windows-x64-portable.zip'"
+
+      - name: Package (macOS)
+        if: startsWith(matrix.name, 'macos')
+        run: |
+          packaging/package.sh installer
+          mkdir -p dist
+          cp game/target/jpackage/installer/*.dmg "dist/HoldTheField-$VERSION-${{ matrix.name }}.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HoldTheField-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: publish release
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Hold the Field $GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes "Downloads: Windows (.msi or portable .zip), macOS (.dmg, Apple silicon or Intel), Linux (.AppImage, .deb or portable .tar.gz), or the plain jar for any system with Java 21. See the README for what each needs. These builds are not code-signed, so Windows SmartScreen and macOS Gatekeeper will ask you to confirm."

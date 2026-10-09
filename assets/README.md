@@ -1,10 +1,11 @@
-# Art (Zawad)
+# Art
 
-Drop PNG or SVG art here. Suggested set for the teaser, 128 px wide isometric tiles (2:1):
+The game generates all of its visuals in code (landscape, sky, water, plants, buildings, character, interface icons) and
+all of its sound. There are no image or audio files to place here. See `game/src/main/resources/shaders/` for the look
+and `game/src/main/java/org/anthropocene/htf/world/` for the scene.
 
-- `paddy-0.png` … `paddy-3.png`: seedling, growing, ripening, golden
-- `water.png`, `soil.png`, `stubble.png`, `dead.png`
-- `bund.png`, `hut.png`, `sack.png`
-- `ui-frame.png` (optional sketchbook frame)
+Use this folder for **concept art, references and logos** (for example the team's sketchbook style from the team photo,
+the NASA Space Apps logo for the video, a launcher icon). Nothing here is loaded by the game.
 
-Keep the hand-drawn sketchbook style from the team photo. Yasin wires them into `src/render/farm.js`.
+If real textures or models are added later, load them through the existing renderers and list their source and licence
+in `docs/AI_USAGE.md` (if AI-made) or in this file.

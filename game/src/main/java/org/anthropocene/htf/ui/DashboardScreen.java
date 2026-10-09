@@ -1,6 +1,7 @@
 package org.anthropocene.htf.ui;
 
 import org.anthropocene.htf.game.Session;
+import org.anthropocene.htf.core.I18n;
 import org.anthropocene.htf.gfx.Renderer2D;
 import org.anthropocene.htf.sim.Config;
 import org.anthropocene.htf.sim.Engine;
@@ -45,23 +46,38 @@ public final class DashboardScreen extends Screen {
             bund[i] = st.history.get(k).bund();
         }
 
-        charts.add(base(new Chart("Rain: hills upstream vs farm (mm/day)"), n, st, dates)
-                .areaOf("Upstream", up, RAIN, "mm").line("Farm", farm, GOOD, "mm"));
-        charts.add(base(new Chart("Scout index: 3-day upstream rain (mm)"), n, st, dates)
-                .line("3-day sum", sum3, TEXT, "mm").hline(cfg.watchMm, WARN, "WATCH").hline(cfg.warningMm, BAD, "WARNING"));
-        Chart water = base(new Chart("Floodwater vs your embankment (m)"), n, st, dates);
-        water.decimals = 2;
-        water.areaOf("Water", level, WATER, "m").stepped("Embankment", bund, SOIL, "m");
-        charts.add(water);
-        charts.add(base(new Chart("Maximum temperature (C)"), n, st, dates).line("Tmax", tmax, TEMP, "C"));
+        boolean dry = cfg.isDrought();
+        if (dry) {
+            double[] rain7 = new double[n];
+            for (int i = 0; i < n; i++) rain7[i] = Engine.recentRain(s.days, i, 7);
+            charts.add(base(new Chart("Rain at the farm (mm/day)"), n, st, dates).areaOf("Rain", farm, RAIN, "mm"));
+            charts.add(base(new Chart("Scout index: rain of the last 7 days (mm)"), n, st, dates)
+                    .line("7-day rain", rain7, TEXT, "mm").hline(cfg.dryWatchMm, WARN, "WATCH").hline(cfg.dryWarnMm, BAD, "WARNING"));
+            Chart moist = base(new Chart("Soil wetness vs the crop's stress line"), n, st, dates);
+            moist.decimals = 2; moist.yMax = 1;
+            moist.areaOf("Soil + irrigation", level, WATER, "").stepped("Stress line", bund, SOIL, "");
+            charts.add(moist);
+        } else {
+            charts.add(base(new Chart("Rain: hills upstream vs farm (mm/day)"), n, st, dates)
+                    .areaOf("Upstream", up, RAIN, "mm").line("Farm", farm, GOOD, "mm"));
+            charts.add(base(new Chart("Scout index: 3-day upstream rain (mm)"), n, st, dates)
+                    .line("3-day sum", sum3, TEXT, "mm").hline(cfg.watchMm, WARN, "WATCH").hline(cfg.warningMm, BAD, "WARNING"));
+            Chart water = base(new Chart("Floodwater vs your embankment (m)"), n, st, dates);
+            water.decimals = 2;
+            water.areaOf("Water", level, WATER, "m").stepped("Embankment", bund, SOIL, "m");
+            charts.add(water);
+        }
+        Chart temp = base(new Chart("Maximum temperature (C)"), n, st, dates).line("Tmax", tmax, TEMP, "C");
+        if (dry) temp.hline(cfg.heatC, BAD, "HEAT");
+        charts.add(temp);
         Chart sc = base(new Chart("Root-zone soil wetness (0-1)"), n, st, dates);
         sc.decimals = 2; sc.yMax = 1;
         sc.areaOf("Soil wetness", soil, SOIL, "");
         charts.add(sc);
         Chart mat = base(new Chart("Rice maturity (%), harvest from 80%"), n, st, dates);
         mat.yMax = 100;
-        mat.line("Long-duration", matLong, session.variety.equals("long") ? CROP : 0xFF8A7A4A, "%")
-                .line("Short-duration", matShort, session.variety.equals("short") ? GOOD : 0xFF4A7A5A, "%")
+        mat.line(cfg.varieties.get("long").label(), matLong, session.variety.equals("long") ? CROP : 0xFF8A7A4A, "%")
+                .line(cfg.varieties.get("short").label(), matShort, session.variety.equals("short") ? GOOD : 0xFF4A7A5A, "%")
                 .hline(80, TEXT, "80%");
         charts.add(mat);
 
@@ -86,7 +102,7 @@ public final class DashboardScreen extends Screen {
         background(r);
         drawCard(r);
         Theme.heading(r, "NASA Satellite Scout", cardX + 32, cardY + 22);
-        String sub = Hud.date(session.state.date) + "   |   day " + (session.state.i + 1) + " of " + session.season.length()
+        String sub = Hud.date(session.state.date) + "   |   " + I18n.f("day {} of {}", session.state.i + 1, session.season.length())
                 + "   |   " + (session.season.sample ? "SAMPLE DATA" : "NASA POWER") + "   |   hover a chart for values";
         r.text(sub, cardX + 300, cardY + 34, 12, MUTED);
         int top = cardY + 84, gap = 14;

@@ -13,7 +13,7 @@ import java.util.Map;
 
 /** The playable seasons listed in seasons.json, with loaded data cached. */
 public final class SeasonCatalog {
-    public record Entry(String id, String name, String blurb) {}
+    public record Entry(String id, String name, String blurb, String hazard, String tag) {}
 
     private static List<Entry> entries;
     private static final Map<String, Season> cache = new HashMap<>();

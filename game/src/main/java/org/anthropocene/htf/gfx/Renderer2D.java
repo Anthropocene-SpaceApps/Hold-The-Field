@@ -1,5 +1,6 @@
 package org.anthropocene.htf.gfx;
 
+import org.anthropocene.htf.core.I18n;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 
@@ -34,6 +35,7 @@ public final class Renderer2D {
     private final Matrix4f proj = new Matrix4f();
     private final int whiteTex;
     public final Font font, bold, mono;
+    private ShapedFont shaped;
 
     public float scale = 1;
     public int guiW, guiH;
@@ -220,14 +222,29 @@ public final class Renderer2D {
         quad(x0, y0, x1, y1, s0, t0, s1, t1, c, c, c, c);
     }
 
-    public float textWidth(String s, float size) { return font.width(s, size); }
-    public float textWidth(String s, float size, boolean boldFace) { return (boldFace ? bold : font).width(s, size); }
+    private ShapedFont shaped() { if (shaped == null) shaped = new ShapedFont(); return shaped; }
+
+    void bindTexture(int tex) { bind(tex); }
+
+    public float textWidth(String s, float size) { return textWidth(s, size, false); }
+
+    public float textWidth(String s, float size, boolean boldFace) {
+        s = I18n.t(s);
+        if (ShapedFont.needsShaping(s)) return shaped().width(s, size, boldFace);
+        return (boldFace ? bold : font).width(s, size);
+    }
 
     public void text(String s, float x, float y, float size, int color) { text(s, x, y, size, color, false, false); }
 
     public void textShadow(String s, float x, float y, float size, int color) { text(s, x, y, size, color, true, false); }
 
     public void text(String s, float x, float y, float size, int color, boolean shadow, boolean boldFace) {
+        s = I18n.t(s);
+        if (ShapedFont.needsShaping(s)) {
+            if (shadow) shaped().draw(this, s, x + Math.max(0.8f, size / 16), y + Math.max(0.8f, size / 16), size, (0x99 << 24), boldFace);
+            shaped().draw(this, s, x, y, size, color, boldFace);
+            return;
+        }
         Font f = boldFace ? bold : font;
         bind(f.texture);
         if (shadow) f.emit(this, s, x + Math.max(0.8f, size / 16), y + Math.max(0.8f, size / 16), size, (0x99 << 24));
@@ -253,6 +270,7 @@ public final class Renderer2D {
     public List<String> wrap(String s, float maxW, float size) { return wrap(s, maxW, size, false); }
 
     public List<String> wrap(String s, float maxW, float size, boolean boldFace) {
+        s = I18n.t(s);
         List<String> lines = new ArrayList<>();
         for (String para : s.split("\n", -1)) {
             StringBuilder line = new StringBuilder();

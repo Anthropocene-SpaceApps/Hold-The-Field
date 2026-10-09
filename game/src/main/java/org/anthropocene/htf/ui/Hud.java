@@ -1,5 +1,6 @@
 package org.anthropocene.htf.ui;
 
+import org.anthropocene.htf.core.I18n;
 import org.anthropocene.htf.core.KeyAction;
 import org.anthropocene.htf.game.Game;
 import org.anthropocene.htf.game.Session;
@@ -25,6 +26,14 @@ import static org.anthropocene.htf.ui.Theme.*;
 public final class Hud {
     public record Item(Icons.Id icon, String name, String hint, String key) {}
 
+    public static final List<Item> ITEMS_DRY = List.of(
+            new Item(Icons.Id.DROP, "Irrigate", "Aim at the rice field and click", "1"),
+            new Item(Icons.Id.SICKLE, "Harvest", "Aim at the rice and click", "2"),
+            new Item(Icons.Id.SATELLITE, "Satellite view", "See what NASA sees", "3"),
+            new Item(Icons.Id.CHART, "Dashboard", "Charts of the season so far", "4"));
+
+    public static List<Item> items(Session s) { return s != null && s.cfg.isDrought() ? ITEMS_DRY : ITEMS; }
+
     public static final List<Item> ITEMS = List.of(
             new Item(Icons.Id.BUND, "Raise bund", "Aim at the embankment and click", "1"),
             new Item(Icons.Id.SICKLE, "Harvest", "Aim at the rice and click", "2"),
@@ -38,7 +47,7 @@ public final class Hud {
     private Hud() {}
 
     private static int statusColor(String status) { return switch (status) { case "warning" -> BAD; case "watch" -> WARN; default -> GOOD; }; }
-    private static String statusText(String status) { return switch (status) { case "warning" -> "FLOOD WARNING"; case "watch" -> "WATCH"; default -> "CALM"; }; }
+    private static String statusText(String status, boolean drought) { return switch (status) { case "warning" -> drought ? "DROUGHT WARNING" : "FLOOD WARNING"; case "watch" -> "WATCH"; default -> "CALM"; }; }
 
     // ------------------------------------------------------------------ main HUD
 
@@ -67,7 +76,7 @@ public final class Hud {
         Theme.card(r, x, y, 300, 112, 14, PANEL);
         int n = s.season.length(), from = st.startIndex;
         r.text(date(st.date), x + 18, y + 14, 22, TEXT, false, true);
-        String day = "Day " + (st.i - from + 1) + " of " + (n - from);
+        String day = I18n.f("Day {} of {}", st.i - from + 1, n - from);
         r.textRight(day, x + 282, y + 22, 12, MUTED, false);
         // timeline with the key moments
         float bx = x + 18, bw = 264, by = y + 54;
@@ -75,14 +84,14 @@ public final class Hud {
         float prog = (st.i - from) / (float) Math.max(1, n - 1 - from);
         r.roundRect(bx, by, Math.max(6, bw * prog), 6, 3, ACCENT);
         for (Event e : st.events) {
-            int col = switch (e.type()) { case "warning" -> BAD; case "flood" -> WATER; case "harvest" -> GOOD; case "loss" -> 0xFFDDDDDD; case "action" -> SOIL; default -> -1; };
+            int col = switch (e.type()) { case "warning" -> BAD; case "flood" -> WATER; case "stress" -> TEMP; case "harvest" -> GOOD; case "loss" -> 0xFFDDDDDD; case "action" -> SOIL; default -> -1; };
             if (col == -1) continue;
             float ex = bx + bw * (e.i() - from) / (float) Math.max(1, n - 1 - from);
             r.circle(ex, by + 3, 4.2f, col);
         }
         r.circle(bx + bw * prog, by + 3, 6.5f, 0xFFFFFFFF);
         int sc = statusColor(st.status);
-        String t = "SCOUT  " + statusText(st.status);
+        String t = I18n.f("SCOUT  {}", statusText(st.status, s.cfg.isDrought()));
         float tw = r.textWidth(t, 11.5f, true) + 26;
         Theme.chip(r, x + 18, y + 72, tw, 24, Renderer2D.withAlpha(sc, st.status.equals("warning") ? 0.30f + 0.12f * (float) Math.sin(Theme.clock * 7) : 0.24f));
         r.circle(x + 30, y + 84, 4.2f, sc);
@@ -90,25 +99,44 @@ public final class Hud {
     }
 
     private static void dataCard(Renderer2D r, Session s, GameState st, Day d, int x, int y) {
+        boolean dry = s.cfg.isDrought();
         Theme.card(r, x, y, 320, 132, 14, PANEL);
-        Theme.label(r, (s.season.sample ? "SAMPLE DATA" : "NASA POWER") + "  /  today", x + 18, y + 12);
-        metric(r, Icons.Id.RAIN, RAIN, String.format("%.0f mm", d.rainUp()), "rain upstream", x + 18, y + 32);
-        metric(r, Icons.Id.RAIN, GOOD, String.format("%.0f mm", d.rainFarm()), "rain on farm", x + 168, y + 32);
-        metric(r, Icons.Id.THERMO, TEMP, String.format("%.0f C", d.tmax()), "max temperature", x + 18, y + 62);
-        metric(r, Icons.Id.SOIL, SOIL, String.format("%.2f", d.soil()), "soil wetness", x + 168, y + 62);
-        // 14-day upstream rain sparkline, coloured by scout threshold
+        Theme.label(r, I18n.f("{}  /  today", s.season.sample ? "SAMPLE DATA" : "NASA POWER"), x + 18, y + 12);
+        if (dry) {
+            metric(r, Icons.Id.RAIN, GOOD, I18n.f("{} mm", fmt0(d.rainFarm())), "rain on farm", x + 18, y + 32);
+            metric(r, Icons.Id.RAIN, RAIN, I18n.f("{} mm", fmt0(Engine.recentRain(s.season.days, st.i, 7))), "rain, last 7 days", x + 168, y + 32);
+        } else {
+            metric(r, Icons.Id.RAIN, RAIN, I18n.f("{} mm", fmt0(d.rainUp())), "rain upstream", x + 18, y + 32);
+            metric(r, Icons.Id.RAIN, GOOD, I18n.f("{} mm", fmt0(d.rainFarm())), "rain on farm", x + 168, y + 32);
+        }
+        metric(r, Icons.Id.THERMO, TEMP, I18n.f("{} C", fmt0(d.tmax())), "max temperature", x + 18, y + 62);
+        metric(r, Icons.Id.SOIL, SOIL, String.format(Locale.ROOT, "%.2f", d.soil()), "soil wetness", x + 168, y + 62);
+        // 14-day rain sparkline, coloured by the scout thresholds
         float sx = x + 18, sw = 284, sy = y + 100, sh = 24;
         int from = Math.max(0, st.i - 13);
-        double max = 120;
-        for (int i = from; i <= st.i; i++) max = Math.max(max, s.season.day(i).rainUp());
+        double max = dry ? 40 : 120;
+        for (int i = from; i <= st.i; i++) max = Math.max(max, dry ? s.season.day(i).rainFarm() : s.season.day(i).rainUp());
         float bw = sw / 14f;
         for (int i = from; i <= st.i; i++) {
-            double sum3 = Engine.threeDayUpstream(s.season.days, i);
-            int col = sum3 >= s.cfg.warningMm ? BAD : sum3 >= s.cfg.watchMm ? WARN : RAIN;
-            float bh = (float) (s.season.day(i).rainUp() / max) * sh;
+            int col;
+            double v;
+            if (dry) {
+                String sc = Engine.scoutStatus(s.season.days, i, s.cfg);
+                col = sc.equals("warning") ? BAD : sc.equals("watch") ? WARN : RAIN;
+                v = s.season.day(i).rainFarm();
+            } else {
+                double sum3 = Engine.threeDayUpstream(s.season.days, i);
+                col = sum3 >= s.cfg.warningMm ? BAD : sum3 >= s.cfg.watchMm ? WARN : RAIN;
+                v = s.season.day(i).rainUp();
+            }
+            float bh = (float) (v / max) * sh;
             r.roundRect(sx + (i - from) * bw + 1, sy + sh - Math.max(2, bh), bw - 2, Math.max(2, bh), 1.5f, col);
         }
     }
+
+    private static String f2(double v) { return String.format(Locale.ROOT, "%.2f", v); }
+
+    private static String fmt0(double v) { return String.format(Locale.ROOT, "%.0f", v); }
 
     private static void metric(Renderer2D r, Icons.Id icon, int color, String value, String label, float x, float y) {
         Icons.draw(r, icon, x + 10, y + 14, 18, color);
@@ -126,26 +154,33 @@ public final class Hud {
 
     private static void gauge(Renderer2D r, GameState st, Session s, int x, int y, int h) {
         if (h < 120) return;
+        boolean dry = s.cfg.isDrought();
         Theme.card(r, x, y, 96, h, 14, PANEL);
-        Theme.label(r, "Water", x + 18, y + 12);
-        float top = y + 38, bottom = y + h - 30, max = 1.6f, gx = x + 20, gw = 22;
+        Theme.label(r, dry ? "Soil" : "Water", x + 18, y + 12);
+        float top = y + 38, bottom = y + h - 30, max = dry ? 1.0f : 1.6f, gx = x + 20, gw = 22;
         r.roundRect(gx, top, gw, bottom - top, 6, 0x22FFFFFF);
-        float fill = (float) Math.min(1, st.level / max) * (bottom - top);
-        int wc = st.level > st.bund ? BAD : st.level > st.bund * 0.85 ? WARN : WATER;
+        double value = dry ? st.moisture : st.level, line = dry ? Engine.stressThreshold(s.cfg, st.variety) : st.bund;
+        float fill = (float) Math.min(1, value / max) * (bottom - top);
+        int wc = dry ? (value < line ? BAD : value < line + 0.08 ? WARN : WATER) : (st.level > st.bund ? BAD : st.level > st.bund * 0.85 ? WARN : WATER);
         if (fill > 1) r.roundRect(gx, bottom - fill, gw, fill, 6, wc);
-        for (int i = 0; i <= 6; i++) {
-            float v = i * 0.25f, ty = bottom - v / max * (bottom - top);
-            r.rect(gx + gw + 4, ty - 0.5f, i % 2 == 0 ? 8 : 5, 1, 0x66FFFFFF);
-            if (i % 2 == 0) r.text(String.format("%.1f", v), gx + gw + 15, ty - 6, 10.5f, MUTED);
+        if (dry && st.boost > 0.01) {      // irrigation still working in the soil
+            float bf = (float) Math.min(st.boost / max, value / max) * (bottom - top);
+            r.roundRect(gx + 4, bottom - fill, gw - 8, bf, 4, 0x66FFFFFF);
         }
-        float by = bottom - (float) st.bund / max * (bottom - top);
+        for (int i = 0; i <= (dry ? 4 : 6); i++) {
+            float v = i * (dry ? 0.25f : 0.25f), ty = bottom - v / max * (bottom - top);
+            r.rect(gx + gw + 4, ty - 0.5f, i % 2 == 0 ? 8 : 5, 1, 0x66FFFFFF);
+            if (i % 2 == 0) r.text(String.format(Locale.ROOT, "%.1f", v), gx + gw + 15, ty - 6, 10.5f, MUTED);
+        }
+        float by = bottom - (float) line / max * (bottom - top);
         r.rect(gx - 5, by - 1, gw + 10, 2.4f, WARN);
-        r.text("bund", x + 52, by - 14, 10, WARN, false, true);
-        r.text(String.format("%.2f m", st.level), x + 18, y + h - 22, 13, wc, false, true);
+        r.text(dry ? "stress" : "bund", x + 52, by - 14, 10, WARN, false, true);
+        r.text(dry ? String.format(Locale.ROOT, "%.2f", value) : I18n.f("{} m", String.format(Locale.ROOT, "%.2f", st.level)), x + 18, y + h - 22, 13, wc, false, true);
     }
 
     private static void actionBar(Game g, Renderer2D r, Session s, GameState st, int w, int h) {
-        int sz = 92, gap = 14, total = ITEMS.size() * sz + (ITEMS.size() - 1) * gap;
+        List<Item> items = items(s);
+        int sz = 92, gap = 14, total = items.size() * sz + (items.size() - 1) * gap;
         int x0 = (w - total) / 2, y0 = h - 24 - sz;
         int sel = g.hotbarSlot();
         // maturity strip across the top of the action bar
@@ -156,7 +191,7 @@ public final class Hud {
         r.roundRect(bx, my + 12, bw, 7, 3.5f, 0x26FFFFFF);
         r.roundRect(bx, my + 12, Math.max(7, bw * (float) st.maturity), 7, 3.5f, st.maturity >= 0.8 ? GOOD : CROP);
         r.rect(bx + bw * 0.8f - 0.8f, my + 8, 1.6f, 15, 0xCCFFFFFF);
-        String rice = "Rice " + Math.round(st.maturity * 100) + "%";
+        String rice = I18n.f("Rice {}%", Math.round(st.maturity * 100));
         r.text(rice, bx + bw + 14, my + 7, 13, TEXT, false, true);
         r.text(st.maturity >= 0.8 ? "ready to cut" : "ready at 80%", bx + bw + 14 + r.textWidth(rice, 13, true) + 8, my + 9, 10.5f, st.maturity >= 0.8 ? GOOD : MUTED);
         // budget chip to the right of the bar
@@ -164,10 +199,10 @@ public final class Hud {
         r.roundRect(cx, cy, 104, 30, 15, PANEL);
         r.roundRing(cx, cy, 104, 30, 15, 1f, BORDER);
         Icons.draw(r, Icons.Id.COIN, cx + 18, cy + 15, 17, CROP);
-        r.text("Tk " + st.coins, cx + 36, cy + 7, 14, CROP, false, true);
+        r.text(I18n.f("Tk {}", st.coins), cx + 36, cy + 7, 14, CROP, false, true);
 
-        for (int i = 0; i < ITEMS.size(); i++) {
-            Item it = ITEMS.get(i);
+        for (int i = 0; i < items.size(); i++) {
+            Item it = items.get(i);
             int x = x0 + i * (sz + gap);
             boolean on = i == sel;
             boolean usable = i >= 2 || s.actionsAllowed();
@@ -180,13 +215,13 @@ public final class Hud {
             r.roundRect(x + 7, y0 + lift + 7, 18, 18, 5, 0x40FFFFFF);
             r.textCentered(it.key(), x + 16, y0 + lift + 10, 11, TEXT, false, true);
             String badge = switch (i) {
-                case 0 -> s.cfg.maxBundRaises - st.bundRaises > 0 ? "Tk " + s.cfg.bundRaiseCost : "max";
+                case 0 -> s.cfg.isDrought() ? I18n.f("Tank {}", (int) Math.floor(st.tank)) : s.cfg.maxBundRaises - st.bundRaises > 0 ? I18n.f("Tk {}", s.cfg.bundRaiseCost) : "max";
                 case 1 -> st.maturity >= s.cfg.minHarvestMaturity ? "ready" : "";
                 default -> "";
             };
-            if (!badge.isEmpty()) r.textRight(badge, x + sz - 7, y0 + lift + 9, 10, i == 0 && s.cfg.maxBundRaises - st.bundRaises <= 0 ? BAD : CROP, false);
+            if (!badge.isEmpty()) r.textRight(badge, x + sz - 7, y0 + lift + 9, 10, i == 0 && (s.cfg.isDrought() ? st.tank < 1 : s.cfg.maxBundRaises - st.bundRaises <= 0) ? BAD : CROP, false);
         }
-        if (g.hotbarNameTimer() > 0) r.textCentered(ITEMS.get(Math.min(sel, ITEMS.size() - 1)).hint(), w / 2f, y0 - 62, 12, MUTED, true, false);
+        if (g.hotbarNameTimer() > 0) r.textCentered(items.get(Math.min(sel, items.size() - 1)).hint(), w / 2f, y0 - 62, 12, MUTED, true, false);
     }
 
     private static void crosshair(Game g, Renderer2D r, int w, int h) {
@@ -243,8 +278,10 @@ public final class Hud {
     private static void prompt(Game g, Renderer2D r, int w, int h) {
         float bw = 780, bh = 92, x = (w - bw) / 2f, y = h * 0.20f;
         Theme.card(r, x, y, bw, bh, 16, 0xE60F1826);
-        r.textCentered("Press " + g.keyName(KeyAction.PAUSE_TIME) + " to begin the season", w / 2f, y + 16, 22, TEXT, false, true);
-        r.textCentered("Look around first. Double-tap Space to fly up and see over the embankment, or press M for the NASA satellite view.", w / 2f, y + 54, 13.5f, 0xFFC9D6E6, false, false);
+        r.textCentered(I18n.f("Press {} to begin the season", g.keyName(KeyAction.PAUSE_TIME)), w / 2f, y + 16, 22, TEXT, false, true);
+        r.textCentered(g.session().cfg.isDrought()
+                ? "Look around first. Double-tap Space to fly up and see the dry fields, or press M for the NASA satellite view."
+                : "Look around first. Double-tap Space to fly up and see over the embankment, or press M for the NASA satellite view.", w / 2f, y + 54, 13.5f, 0xFFC9D6E6, false, false);
     }
 
     // ------------------------------------------------------------------ satellite view
@@ -253,31 +290,33 @@ public final class Hud {
         r.gradientV(0, 0, w, 150, 0x99050A12, 0x00050A12);
         r.gradientV(0, h - 200, w, 200, 0x00050A12, 0xB0050A12);
         r.textCentered("NASA SATELLITE VIEW", w / 2f, 78, 14, ACCENT, false, true);
-        r.textCentered("Rain over the Meghalaya hills reaches the haor about two days later", w / 2f, 100, 13, MUTED, true, false);
+        r.textCentered(s.cfg.isDrought() ? "When the rain stops, the soil dries out within days" : "Rain over the Meghalaya hills reaches the haor about two days later", w / 2f, 100, 13, MUTED, true, false);
 
         Landscape ls = g.scene().landscape();
         var farmPt = s.season.points.farm();
         var upPt = s.season.points.upstream();
         float[] farm = g.project(new Vector3f(0, ls.height(0, 0) + 8, 0));
         float[] up = g.project(new Vector3f(24, 60, -640));
-        if (up != null && farm != null) {
+        boolean dry = s.cfg.isDrought();
+        if (!dry && up != null && farm != null) {
             for (int i = 0; i < 18; i++) {   // dashed flow line from the hills to the farm
                 float t0 = i / 18f + (float) (Theme.clock * 0.1 % (1 / 18.0)), t1 = t0 + 0.03f;
                 r.line(up[0] + (farm[0] - up[0]) * t0, up[1] + (farm[1] - up[1]) * t0, up[0] + (farm[0] - up[0]) * t1, up[1] + (farm[1] - up[1]) * t1, 2.2f, 0xAAFFFFFF);
             }
-            r.triangle(farm[0], farm[1] - 14, farm[0] - 6, farm[1] - 26, farm[0] + 6, farm[1] - 26, 0xFFFFFFFF);
         }
-        if (up != null) pointLabel(r, up[0], up[1], "UPSTREAM  Meghalaya hills", String.format("%.2f N  %.2f E", upPt.lat(), upPt.lon()),
-                String.format("rain %.0f mm/day   3-day %.0f mm", d.rainUp(), Engine.threeDayUpstream(s.season.days, st.i)), RAIN);
-        if (farm != null) pointLabel(r, farm[0], farm[1], "FARM  Sunamganj haor", String.format("%.2f N  %.2f E", farmPt.lat(), farmPt.lon()),
-                String.format("rain %.0f mm   soil %.2f   water %.2f m", d.rainFarm(), d.soil(), st.level), CROP);
+        if (farm != null) r.triangle(farm[0], farm[1] - 14, farm[0] - 6, farm[1] - 26, farm[0] + 6, farm[1] - 26, 0xFFFFFFFF);
+        if (!dry && up != null) pointLabel(r, up[0], up[1], "UPSTREAM  Meghalaya hills", I18n.f("{} N  {} E", f2(upPt.lat()), f2(upPt.lon())),
+                I18n.f("rain {} mm/day   3-day {} mm", fmt0(d.rainUp()), fmt0(Engine.threeDayUpstream(s.season.days, st.i))), RAIN);
+        if (farm != null) pointLabel(r, farm[0], farm[1], dry ? "FARM  Barind Tract" : "FARM  Sunamganj haor", I18n.f("{} N  {} E", f2(farmPt.lat()), f2(farmPt.lon())),
+                dry ? I18n.f("rain {} mm   7-day {} mm   soil {}", fmt0(d.rainFarm()), fmt0(Engine.recentRain(s.season.days, st.i, 7)), f2(d.soil()))
+                    : I18n.f("rain {} mm   soil {}   water {} m", fmt0(d.rainFarm()), f2(d.soil()), f2(st.level)), CROP);
 
         // legend
         float lx = 24, ly = h - 130;
         Theme.card(r, lx, ly, 262, 106, 14, PANEL);
         Theme.label(r, "Data layers", lx + 16, ly + 12);
         r.gradientH(lx + 16, ly + 34, 160, 10, 0xFF1A66FF, 0xFFFF4033);
-        r.text("rain intensity (upstream)", lx + 16, ly + 48, 11, MUTED);
+        r.text(dry ? "rain intensity" : "rain intensity (upstream)", lx + 16, ly + 48, 11, MUTED);
         r.gradientH(lx + 16, ly + 70, 160, 10, 0xFFC09040, 0xFF1A59D9);
         r.text("soil wetness (dry to wet)", lx + 16, ly + 84, 11, MUTED);
         r.textRight("drag: look   wheel: zoom   WASD: move   M / Esc: back", w - 24, h - 34, 12, MUTED, true);
@@ -305,7 +344,7 @@ public final class Hud {
         Theme.card(r, x, y, w, h, 14, 0xF2132033);
         r.roundRect(x + 12, y + 12, 40, 40, 20, 0xFFFFC857);
         Icons.draw(r, Icons.Id.WHEAT, x + 32, y + 32, 24, 0xFF4A3000);
-        r.text(t.header().toUpperCase(), x + 64, y + 11, 10.5f, 0xFFFFD27A, false, true);
+        r.text(I18n.caps(t.header()), x + 64, y + 11, 10.5f, 0xFFFFD27A, false, true);
         r.text(t.title(), x + 64, y + 28, 16, TEXT, false, true);
     }
 
