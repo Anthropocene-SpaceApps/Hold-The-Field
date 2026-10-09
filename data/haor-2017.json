@@ -1,9 +1,13 @@
 {
- "region": "sunamganj-haor",
+ "region": "haor",
  "season": "20161201-20170430",
- "sample": true,
- "note": "SYNTHETIC PLACEHOLDER. Not real data. Replace by running the launcher's Update NASA data or data-pipeline/fetch_power.py.",
- "source": "NASA POWER Daily API, community AG (placeholder until fetched)",
+ "sample": false,
+ "source": "NASA POWER Daily API, community AG",
+ "fetched_parameters": [
+  "PRECTOTCORR",
+  "T2M_MAX",
+  "GWETROOT"
+ ],
  "points": {
   "farm": {
    "lat": 25.07,
@@ -20,1063 +24,1064 @@
   "tmax": "degC",
   "soil": "0-1 (GWETROOT)"
  },
+ "missing_values_filled": 0,
  "days": [
   {
    "date": "2016-12-01",
-   "rainUp": 0.7,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 27.3,
-   "soil": 0.535
+   "tmax": 26.7,
+   "soil": 0.8
   },
   {
    "date": "2016-12-02",
-   "rainUp": 1.0,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 27.2,
-   "soil": 0.503
+   "tmax": 26.4,
+   "soil": 0.79
   },
   {
    "date": "2016-12-03",
-   "rainUp": 0.1,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 26.2,
-   "soil": 0.519
+   "tmax": 27.6,
+   "soil": 0.79
   },
   {
    "date": "2016-12-04",
-   "rainUp": 0.2,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 25.6,
-   "soil": 0.508
+   "tmax": 27.4,
+   "soil": 0.79
   },
   {
    "date": "2016-12-05",
-   "rainUp": 0.7,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 26.4,
-   "soil": 0.503
+   "tmax": 27.1,
+   "soil": 0.78
   },
   {
    "date": "2016-12-06",
-   "rainUp": 0.4,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 26.1,
-   "soil": 0.534
+   "tmax": 27.5,
+   "soil": 0.78
   },
   {
    "date": "2016-12-07",
-   "rainUp": 0.1,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 25.9,
-   "soil": 0.508
+   "tmax": 26.6,
+   "soil": 0.78
   },
   {
    "date": "2016-12-08",
-   "rainUp": 0.9,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.8,
-   "soil": 0.531
+   "tmax": 27.3,
+   "soil": 0.77
   },
   {
    "date": "2016-12-09",
-   "rainUp": 0.8,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.6,
-   "soil": 0.523
+   "tmax": 26.7,
+   "soil": 0.77
   },
   {
    "date": "2016-12-10",
-   "rainUp": 0.5,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
    "tmax": 25.8,
-   "soil": 0.514
+   "soil": 0.77
   },
   {
    "date": "2016-12-11",
-   "rainUp": 0.8,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.8,
-   "soil": 0.528
+   "tmax": 25.2,
+   "soil": 0.76
   },
   {
    "date": "2016-12-12",
-   "rainUp": 1.2,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.5,
-   "soil": 0.512
+   "tmax": 24.9,
+   "soil": 0.76
   },
   {
    "date": "2016-12-13",
-   "rainUp": 1.1,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 25.2,
-   "soil": 0.523
+   "tmax": 24.5,
+   "soil": 0.76
   },
   {
    "date": "2016-12-14",
-   "rainUp": 1.2,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 25.3,
-   "soil": 0.522
+   "tmax": 24.4,
+   "soil": 0.75
   },
   {
    "date": "2016-12-15",
-   "rainUp": 0.8,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.9,
-   "soil": 0.502
+   "tmax": 24.4,
+   "soil": 0.75
   },
   {
    "date": "2016-12-16",
-   "rainUp": 0.9,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.3,
-   "soil": 0.523
+   "tmax": 25.6,
+   "soil": 0.75
   },
   {
    "date": "2016-12-17",
-   "rainUp": 1.3,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.3,
-   "soil": 0.525
+   "tmax": 24.9,
+   "soil": 0.74
   },
   {
    "date": "2016-12-18",
-   "rainUp": 1.3,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.7,
-   "soil": 0.533
+   "tmax": 24.3,
+   "soil": 0.74
   },
   {
    "date": "2016-12-19",
-   "rainUp": 0.6,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
    "tmax": 23.6,
-   "soil": 0.525
+   "soil": 0.74
   },
   {
    "date": "2016-12-20",
-   "rainUp": 0.9,
-   "rainFarm": 0.0,
-   "tmax": 25.2,
-   "soil": 0.538
+   "rainUp": 0.4,
+   "rainFarm": 0.2,
+   "tmax": 23.7,
+   "soil": 0.73
   },
   {
    "date": "2016-12-21",
-   "rainUp": 0.1,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.4,
-   "soil": 0.52
+   "tmax": 23.9,
+   "soil": 0.73
   },
   {
    "date": "2016-12-22",
-   "rainUp": 0.4,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 23.9,
-   "soil": 0.538
+   "tmax": 25.6,
+   "soil": 0.73
   },
   {
    "date": "2016-12-23",
-   "rainUp": 1.4,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 24.5,
-   "soil": 0.528
+   "tmax": 24.7,
+   "soil": 0.73
   },
   {
    "date": "2016-12-24",
-   "rainUp": 0.3,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 23.9,
-   "soil": 0.531
+   "tmax": 25.4,
+   "soil": 0.72
   },
   {
    "date": "2016-12-25",
-   "rainUp": 0.9,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 22.6,
-   "soil": 0.517
+   "tmax": 25.4,
+   "soil": 0.72
   },
   {
    "date": "2016-12-26",
-   "rainUp": 0.7,
-   "rainFarm": 0.0,
-   "tmax": 24.0,
-   "soil": 0.519
+   "rainUp": 4.1,
+   "rainFarm": 4.0,
+   "tmax": 25.4,
+   "soil": 0.72
   },
   {
    "date": "2016-12-27",
-   "rainUp": 1.3,
-   "rainFarm": 0.0,
-   "tmax": 23.9,
-   "soil": 0.507
+   "rainUp": 0.2,
+   "rainFarm": 0.2,
+   "tmax": 25.7,
+   "soil": 0.72
   },
   {
    "date": "2016-12-28",
-   "rainUp": 1.1,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 23.1,
-   "soil": 0.51
+   "tmax": 24.2,
+   "soil": 0.71
   },
   {
    "date": "2016-12-29",
-   "rainUp": 13.5,
-   "rainFarm": 4.7,
-   "tmax": 23.1,
-   "soil": 0.504
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.1,
+   "soil": 0.71
   },
   {
    "date": "2016-12-30",
-   "rainUp": 1.1,
+   "rainUp": 0.0,
    "rainFarm": 0.0,
-   "tmax": 23.8,
-   "soil": 0.529
+   "tmax": 24.6,
+   "soil": 0.71
   },
   {
    "date": "2016-12-31",
-   "rainUp": 18.4,
-   "rainFarm": 1.4,
-   "tmax": 23.1,
-   "soil": 0.521
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.6,
+   "soil": 0.7
   },
   {
    "date": "2017-01-01",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 23.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.4,
+   "soil": 0.7
   },
   {
    "date": "2017-01-02",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 23.5,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.6,
+   "soil": 0.7
   },
   {
    "date": "2017-01-03",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 23.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.6,
+   "soil": 0.7
   },
   {
    "date": "2017-01-04",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 23.5,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.7,
+   "soil": 0.69
   },
   {
    "date": "2017-01-05",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.3,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.8,
+   "soil": 0.69
   },
   {
    "date": "2017-01-06",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 24.4,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.0,
+   "soil": 0.68
   },
   {
    "date": "2017-01-07",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.2,
+   "soil": 0.68
   },
   {
    "date": "2017-01-08",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 23.7,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.2,
+   "soil": 0.68
   },
   {
    "date": "2017-01-09",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.5,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.4,
+   "soil": 0.68
   },
   {
    "date": "2017-01-10",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.5,
-   "soil": 0.55
+   "rainUp": 0.2,
+   "rainFarm": 0.1,
+   "tmax": 24.2,
+   "soil": 0.67
   },
   {
    "date": "2017-01-11",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 24.1,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.0,
+   "soil": 0.67
   },
   {
    "date": "2017-01-12",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 24.3,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 23.3,
+   "soil": 0.67
   },
   {
    "date": "2017-01-13",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.5,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 22.3,
+   "soil": 0.66
   },
   {
    "date": "2017-01-14",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.6,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 21.1,
+   "soil": 0.66
   },
   {
    "date": "2017-01-15",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 24.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 22.4,
+   "soil": 0.66
   },
   {
    "date": "2017-01-16",
-   "rainUp": 0,
-   "rainFarm": 4.3,
-   "tmax": 25.8,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 23.5,
+   "soil": 0.65
   },
   {
    "date": "2017-01-17",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.6,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 23.8,
+   "soil": 0.65
   },
   {
    "date": "2017-01-18",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.4,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.0,
+   "soil": 0.65
   },
   {
    "date": "2017-01-19",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.8,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.5,
+   "soil": 0.64
   },
   {
    "date": "2017-01-20",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.4,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.5,
+   "soil": 0.64
   },
   {
    "date": "2017-01-21",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 24.7,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.9,
+   "soil": 0.64
   },
   {
    "date": "2017-01-22",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.5,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.1,
+   "soil": 0.63
   },
   {
    "date": "2017-01-23",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.9,
+   "soil": 0.63
   },
   {
    "date": "2017-01-24",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.3,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.1,
+   "soil": 0.63
   },
   {
    "date": "2017-01-25",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.7,
+   "soil": 0.62
   },
   {
    "date": "2017-01-26",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 24.9,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.4,
+   "soil": 0.62
   },
   {
    "date": "2017-01-27",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.6,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.8,
+   "soil": 0.62
   },
   {
    "date": "2017-01-28",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.9,
-   "soil": 0.55
+   "rainUp": 0.1,
+   "rainFarm": 0.0,
+   "tmax": 26.1,
+   "soil": 0.61
   },
   {
    "date": "2017-01-29",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.8,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.2,
+   "soil": 0.61
   },
   {
    "date": "2017-01-30",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.8,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 25.1,
+   "soil": 0.61
   },
   {
    "date": "2017-01-31",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 25.5,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.3,
+   "soil": 0.6
   },
   {
    "date": "2017-02-01",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 24.9,
+   "soil": 0.6
   },
   {
    "date": "2017-02-02",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.8,
-   "soil": 0.55
+   "rainUp": 0.3,
+   "rainFarm": 0.1,
+   "tmax": 25.8,
+   "soil": 0.6
   },
   {
    "date": "2017-02-03",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.5,
-   "soil": 0.55
+   "rainUp": 0.9,
+   "rainFarm": 0.4,
+   "tmax": 24.8,
+   "soil": 0.6
   },
   {
    "date": "2017-02-04",
-   "rainUp": 11.1,
-   "rainFarm": 4.4,
-   "tmax": 26.9,
-   "soil": 0.65
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.2,
+   "soil": 0.59
   },
   {
    "date": "2017-02-05",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.1,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.7,
+   "soil": 0.59
   },
   {
    "date": "2017-02-06",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.3,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.1,
+   "soil": 0.58
   },
   {
    "date": "2017-02-07",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.6,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.1,
+   "soil": 0.58
   },
   {
    "date": "2017-02-08",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.9,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.4,
+   "soil": 0.58
   },
   {
    "date": "2017-02-09",
-   "rainUp": 0,
-   "rainFarm": 0,
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
    "tmax": 26.8,
-   "soil": 0.55
+   "soil": 0.57
   },
   {
    "date": "2017-02-10",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.1,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.3,
+   "soil": 0.57
   },
   {
    "date": "2017-02-11",
-   "rainUp": 25.6,
-   "rainFarm": 12.7,
-   "tmax": 27.7,
-   "soil": 0.65
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.0,
+   "soil": 0.57
   },
   {
    "date": "2017-02-12",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.7,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.6,
+   "soil": 0.56
   },
   {
    "date": "2017-02-13",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 28.1,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.4,
+   "soil": 0.56
   },
   {
    "date": "2017-02-14",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.4,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-15",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.4,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-16",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.4,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-17",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.9,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-18",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.1,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-19",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 28.5,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-20",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 28.6,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-21",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 26.9,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-22",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.9,
-   "soil": 0.55
-  },
-  {
-   "date": "2017-02-23",
-   "rainUp": 0,
-   "rainFarm": 0,
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
    "tmax": 28.4,
    "soil": 0.55
   },
   {
-   "date": "2017-02-24",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 28.2,
+   "date": "2017-02-15",
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 28.9,
    "soil": 0.55
+  },
+  {
+   "date": "2017-02-16",
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 28.1,
+   "soil": 0.55
+  },
+  {
+   "date": "2017-02-17",
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 28.1,
+   "soil": 0.54
+  },
+  {
+   "date": "2017-02-18",
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 28.8,
+   "soil": 0.54
+  },
+  {
+   "date": "2017-02-19",
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 28.4,
+   "soil": 0.54
+  },
+  {
+   "date": "2017-02-20",
+   "rainUp": 11.1,
+   "rainFarm": 7.9,
+   "tmax": 27.8,
+   "soil": 0.53
+  },
+  {
+   "date": "2017-02-21",
+   "rainUp": 30.8,
+   "rainFarm": 34.0,
+   "tmax": 28.2,
+   "soil": 0.58
+  },
+  {
+   "date": "2017-02-22",
+   "rainUp": 61.3,
+   "rainFarm": 64.4,
+   "tmax": 28.6,
+   "soil": 0.64
+  },
+  {
+   "date": "2017-02-23",
+   "rainUp": 21.6,
+   "rainFarm": 22.8,
+   "tmax": 28.5,
+   "soil": 0.68
+  },
+  {
+   "date": "2017-02-24",
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.2,
+   "soil": 0.65
   },
   {
    "date": "2017-02-25",
-   "rainUp": 0,
-   "rainFarm": 2.7,
-   "tmax": 28,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.4,
+   "soil": 0.63
   },
   {
    "date": "2017-02-26",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.3,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.5,
+   "soil": 0.62
   },
   {
    "date": "2017-02-27",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 28.6,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.0,
+   "soil": 0.61
   },
   {
    "date": "2017-02-28",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.9,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.8,
+   "soil": 0.61
   },
   {
    "date": "2017-03-01",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 27.5,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 28.6,
+   "soil": 0.6
   },
   {
    "date": "2017-03-02",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 29.3,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 29.8,
+   "soil": 0.6
   },
   {
    "date": "2017-03-03",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 29.6,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 30.1,
+   "soil": 0.59
   },
   {
    "date": "2017-03-04",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 29.2,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 29.7,
+   "soil": 0.59
   },
   {
    "date": "2017-03-05",
-   "rainUp": 37.2,
-   "rainFarm": 15,
-   "tmax": 28.2,
-   "soil": 0.65
+   "rainUp": 6.1,
+   "rainFarm": 6.1,
+   "tmax": 28.9,
+   "soil": 0.59
   },
   {
    "date": "2017-03-06",
-   "rainUp": 0,
-   "rainFarm": 7.5,
-   "tmax": 28.7,
-   "soil": 0.55
+   "rainUp": 0.8,
+   "rainFarm": 7.8,
+   "tmax": 29.1,
+   "soil": 0.6
   },
   {
    "date": "2017-03-07",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 29,
-   "soil": 0.55
+   "rainUp": 1.8,
+   "rainFarm": 8.9,
+   "tmax": 27.8,
+   "soil": 0.6
   },
   {
    "date": "2017-03-08",
-   "rainUp": 30.4,
-   "rainFarm": 12.1,
-   "tmax": 28.1,
-   "soil": 0.65
+   "rainUp": 12.6,
+   "rainFarm": 13.9,
+   "tmax": 28.4,
+   "soil": 0.6
   },
   {
    "date": "2017-03-09",
-   "rainUp": 15.4,
-   "rainFarm": 4.8,
-   "tmax": 28.6,
-   "soil": 0.65
+   "rainUp": 0.1,
+   "rainFarm": 0.3,
+   "tmax": 27.6,
+   "soil": 0.61
   },
   {
    "date": "2017-03-10",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 30,
-   "soil": 0.55
+   "rainUp": 0.6,
+   "rainFarm": 4.5,
+   "tmax": 28.5,
+   "soil": 0.61
   },
   {
    "date": "2017-03-11",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 28.9,
-   "soil": 0.55
+   "rainUp": 24.7,
+   "rainFarm": 42.3,
+   "tmax": 27.4,
+   "soil": 0.64
   },
   {
    "date": "2017-03-12",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 30.1,
-   "soil": 0.55
+   "rainUp": 0.9,
+   "rainFarm": 1.3,
+   "tmax": 27.2,
+   "soil": 0.65
   },
   {
    "date": "2017-03-13",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 29.6,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.2,
+   "soil": 0.63
   },
   {
    "date": "2017-03-14",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 29,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 27.2,
+   "soil": 0.62
   },
   {
    "date": "2017-03-15",
-   "rainUp": 21.7,
-   "rainFarm": 6,
-   "tmax": 29.2,
-   "soil": 0.65
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 26.6,
+   "soil": 0.61
   },
   {
    "date": "2017-03-16",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 29.8,
-   "soil": 0.55
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 28.6,
+   "soil": 0.61
   },
   {
    "date": "2017-03-17",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 30,
-   "soil": 0.55
+   "rainUp": 0.2,
+   "rainFarm": 0.0,
+   "tmax": 28.2,
+   "soil": 0.6
   },
   {
    "date": "2017-03-18",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 30.2,
-   "soil": 0.55
+   "rainUp": 15.9,
+   "rainFarm": 18.9,
+   "tmax": 27.7,
+   "soil": 0.61
   },
   {
    "date": "2017-03-19",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 30.1,
-   "soil": 0.55
+   "rainUp": 1.6,
+   "rainFarm": 1.7,
+   "tmax": 27.5,
+   "soil": 0.62
   },
   {
    "date": "2017-03-20",
-   "rainUp": 87.6,
-   "rainFarm": 39.3,
-   "tmax": 30.6,
-   "soil": 0.65
+   "rainUp": 2.0,
+   "rainFarm": 4.8,
+   "tmax": 23.9,
+   "soil": 0.61
   },
   {
    "date": "2017-03-21",
-   "rainUp": 61,
-   "rainFarm": 25.9,
-   "tmax": 28.9,
-   "soil": 0.65
+   "rainUp": 1.1,
+   "rainFarm": 0.8,
+   "tmax": 27.0,
+   "soil": 0.61
   },
   {
    "date": "2017-03-22",
-   "rainUp": 33.1,
-   "rainFarm": 15.1,
-   "tmax": 29.5,
-   "soil": 0.65
+   "rainUp": 0.0,
+   "rainFarm": 0.1,
+   "tmax": 28.0,
+   "soil": 0.6
   },
   {
    "date": "2017-03-23",
-   "rainUp": 88.4,
-   "rainFarm": 36.9,
-   "tmax": 30.3,
-   "soil": 0.8
+   "rainUp": 0.1,
+   "rainFarm": 0.1,
+   "tmax": 29.3,
+   "soil": 0.6
   },
   {
    "date": "2017-03-24",
-   "rainUp": 64.3,
-   "rainFarm": 31,
-   "tmax": 29.4,
-   "soil": 0.8
+   "rainUp": 17.4,
+   "rainFarm": 4.6,
+   "tmax": 30.4,
+   "soil": 0.59
   },
   {
    "date": "2017-03-25",
-   "rainUp": 88.1,
-   "rainFarm": 38.9,
-   "tmax": 29.5,
-   "soil": 0.8
+   "rainUp": 28.6,
+   "rainFarm": 68.4,
+   "tmax": 28.8,
+   "soil": 0.65
   },
   {
    "date": "2017-03-26",
-   "rainUp": 214.8,
-   "rainFarm": 99.8,
-   "tmax": 29.5,
-   "soil": 0.8
+   "rainUp": 0.1,
+   "rainFarm": 0.2,
+   "tmax": 29.7,
+   "soil": 0.67
   },
   {
    "date": "2017-03-27",
-   "rainUp": 184.6,
-   "rainFarm": 72.7,
-   "tmax": 31.2,
-   "soil": 0.8
+   "rainUp": 15.8,
+   "rainFarm": 12.6,
+   "tmax": 29.2,
+   "soil": 0.66
   },
   {
    "date": "2017-03-28",
-   "rainUp": 163.4,
-   "rainFarm": 72.9,
-   "tmax": 29.9,
-   "soil": 0.8
+   "rainUp": 9.3,
+   "rainFarm": 20.4,
+   "tmax": 29.6,
+   "soil": 0.67
   },
   {
    "date": "2017-03-29",
-   "rainUp": 138.9,
-   "rainFarm": 40.1,
-   "tmax": 30.4,
-   "soil": 0.8
+   "rainUp": 49.3,
+   "rainFarm": 74.5,
+   "tmax": 29.3,
+   "soil": 0.7
   },
   {
    "date": "2017-03-30",
-   "rainUp": 137.2,
-   "rainFarm": 42.2,
-   "tmax": 29.8,
-   "soil": 0.8
+   "rainUp": 55.2,
+   "rainFarm": 46.1,
+   "tmax": 30.6,
+   "soil": 0.77
   },
   {
    "date": "2017-03-31",
-   "rainUp": 158,
-   "rainFarm": 56.6,
-   "tmax": 29.9,
-   "soil": 0.8
+   "rainUp": 69.0,
+   "rainFarm": 71.9,
+   "tmax": 30.1,
+   "soil": 0.82
   },
   {
    "date": "2017-04-01",
-   "rainUp": 122.6,
-   "rainFarm": 56.4,
-   "tmax": 30.3,
-   "soil": 0.8
+   "rainUp": 74.0,
+   "rainFarm": 82.3,
+   "tmax": 29.9,
+   "soil": 0.87
   },
   {
    "date": "2017-04-02",
-   "rainUp": 163.8,
-   "rainFarm": 65.2,
-   "tmax": 30.6,
-   "soil": 0.8
+   "rainUp": 61.5,
+   "rainFarm": 68.2,
+   "tmax": 30.3,
+   "soil": 0.9
   },
   {
    "date": "2017-04-03",
-   "rainUp": 196.5,
-   "rainFarm": 63.6,
-   "tmax": 30.4,
-   "soil": 0.8
+   "rainUp": 85.4,
+   "rainFarm": 86.3,
+   "tmax": 29.2,
+   "soil": 0.92
   },
   {
    "date": "2017-04-04",
-   "rainUp": 225.3,
-   "rainFarm": 99.3,
-   "tmax": 30.1,
-   "soil": 0.8
+   "rainUp": 21.0,
+   "rainFarm": 24.2,
+   "tmax": 28.5,
+   "soil": 0.92
   },
   {
    "date": "2017-04-05",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 30.7,
-   "soil": 0.7
+   "rainUp": 10.3,
+   "rainFarm": 37.1,
+   "tmax": 28.7,
+   "soil": 0.92
   },
   {
    "date": "2017-04-06",
-   "rainUp": 93.7,
-   "rainFarm": 42.3,
-   "tmax": 31,
-   "soil": 0.8
+   "rainUp": 2.9,
+   "rainFarm": 9.0,
+   "tmax": 29.4,
+   "soil": 0.92
   },
   {
    "date": "2017-04-07",
-   "rainUp": 82.7,
-   "rainFarm": 29.7,
-   "tmax": 32,
-   "soil": 0.8
+   "rainUp": 8.0,
+   "rainFarm": 9.5,
+   "tmax": 30.4,
+   "soil": 0.91
   },
   {
    "date": "2017-04-08",
-   "rainUp": 75.5,
-   "rainFarm": 20.6,
-   "tmax": 31.7,
-   "soil": 0.8
+   "rainUp": 17.5,
+   "rainFarm": 20.2,
+   "tmax": 30.8,
+   "soil": 0.91
   },
   {
    "date": "2017-04-09",
-   "rainUp": 40.7,
-   "rainFarm": 18.9,
-   "tmax": 31.7,
-   "soil": 0.8
+   "rainUp": 9.6,
+   "rainFarm": 15.3,
+   "tmax": 31.4,
+   "soil": 0.91
   },
   {
    "date": "2017-04-10",
-   "rainUp": 85.7,
-   "rainFarm": 25.3,
-   "tmax": 30.9,
-   "soil": 0.8
+   "rainUp": 1.3,
+   "rainFarm": 1.7,
+   "tmax": 30.6,
+   "soil": 0.91
   },
   {
    "date": "2017-04-11",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 31.3,
-   "soil": 0.7
+   "rainUp": 8.8,
+   "rainFarm": 9.3,
+   "tmax": 30.6,
+   "soil": 0.9
   },
   {
    "date": "2017-04-12",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 31.5,
-   "soil": 0.7
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 30.8,
+   "soil": 0.89
   },
   {
    "date": "2017-04-13",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 31,
-   "soil": 0.7
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 31.3,
+   "soil": 0.89
   },
   {
    "date": "2017-04-14",
-   "rainUp": 60.8,
-   "rainFarm": 25.2,
-   "tmax": 32.7,
-   "soil": 0.8
+   "rainUp": 0.0,
+   "rainFarm": 0.0,
+   "tmax": 31.2,
+   "soil": 0.88
   },
   {
    "date": "2017-04-15",
-   "rainUp": 50.7,
-   "rainFarm": 23.8,
-   "tmax": 32,
-   "soil": 0.8
+   "rainUp": 1.3,
+   "rainFarm": 0.4,
+   "tmax": 30.2,
+   "soil": 0.87
   },
   {
    "date": "2017-04-16",
-   "rainUp": 94.3,
-   "rainFarm": 46,
-   "tmax": 32.2,
-   "soil": 0.8
+   "rainUp": 26.8,
+   "rainFarm": 60.6,
+   "tmax": 28.7,
+   "soil": 0.9
   },
   {
    "date": "2017-04-17",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 31.6,
-   "soil": 0.7
+   "rainUp": 0.0,
+   "rainFarm": 0.6,
+   "tmax": 30.9,
+   "soil": 0.9
   },
   {
    "date": "2017-04-18",
-   "rainUp": 81.5,
-   "rainFarm": 31.5,
-   "tmax": 31.2,
-   "soil": 0.8
+   "rainUp": 5.0,
+   "rainFarm": 0.7,
+   "tmax": 30.6,
+   "soil": 0.89
   },
   {
    "date": "2017-04-19",
-   "rainUp": 76.7,
-   "rainFarm": 35.9,
-   "tmax": 32.4,
-   "soil": 0.8
+   "rainUp": 39.8,
+   "rainFarm": 65.4,
+   "tmax": 28.7,
+   "soil": 0.91
   },
   {
    "date": "2017-04-20",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 32.7,
-   "soil": 0.7
+   "rainUp": 28.4,
+   "rainFarm": 67.5,
+   "tmax": 28.2,
+   "soil": 0.95
   },
   {
    "date": "2017-04-21",
-   "rainUp": 31.5,
-   "rainFarm": 10.9,
-   "tmax": 32.3,
-   "soil": 0.8
+   "rainUp": 37.7,
+   "rainFarm": 96.3,
+   "tmax": 26.8,
+   "soil": 0.98
   },
   {
    "date": "2017-04-22",
-   "rainUp": 37.6,
-   "rainFarm": 9.8,
-   "tmax": 31.4,
-   "soil": 0.8
+   "rainUp": 49.9,
+   "rainFarm": 83.2,
+   "tmax": 27.2,
+   "soil": 1.0
   },
   {
    "date": "2017-04-23",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 32.3,
-   "soil": 0.7
+   "rainUp": 17.6,
+   "rainFarm": 43.4,
+   "tmax": 28.8,
+   "soil": 1.0
   },
   {
    "date": "2017-04-24",
-   "rainUp": 86.4,
-   "rainFarm": 30.1,
-   "tmax": 32.6,
-   "soil": 0.8
+   "rainUp": 12.8,
+   "rainFarm": 24.3,
+   "tmax": 29.1,
+   "soil": 0.99
   },
   {
    "date": "2017-04-25",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 32.7,
-   "soil": 0.7
+   "rainUp": 20.8,
+   "rainFarm": 35.5,
+   "tmax": 30.8,
+   "soil": 0.99
   },
   {
    "date": "2017-04-26",
-   "rainUp": 61.5,
-   "rainFarm": 18.5,
-   "tmax": 32.6,
-   "soil": 0.8
+   "rainUp": 67.4,
+   "rainFarm": 44.4,
+   "tmax": 30.5,
+   "soil": 0.99
   },
   {
    "date": "2017-04-27",
-   "rainUp": 99.5,
-   "rainFarm": 35.2,
-   "tmax": 33.2,
-   "soil": 0.8
+   "rainUp": 38.8,
+   "rainFarm": 67.2,
+   "tmax": 29.7,
+   "soil": 0.99
   },
   {
    "date": "2017-04-28",
-   "rainUp": 0,
-   "rainFarm": 0,
-   "tmax": 33.4,
-   "soil": 0.7
+   "rainUp": 19.4,
+   "rainFarm": 18.8,
+   "tmax": 29.0,
+   "soil": 0.99
   },
   {
    "date": "2017-04-29",
-   "rainUp": 51.3,
-   "rainFarm": 24.3,
-   "tmax": 33,
-   "soil": 0.8
+   "rainUp": 36.5,
+   "rainFarm": 34.8,
+   "tmax": 29.7,
+   "soil": 0.99
   },
   {
    "date": "2017-04-30",
-   "rainUp": 63.7,
-   "rainFarm": 20.8,
-   "tmax": 33.9,
-   "soil": 0.8
+   "rainUp": 27.7,
+   "rainFarm": 33.6,
+   "tmax": 30.1,
+   "soil": 0.99
   }
  ]
 }

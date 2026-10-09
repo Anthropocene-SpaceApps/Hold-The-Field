@@ -15,8 +15,8 @@ export const CONFIG = {
   // --- Water (simple bucket model) -------------------------------------------
   // level_t = max(0, level_{t-1} * drain + a * rainUp[t - lagDays] + b * rainFarm[t] - baseLoss)
   // level is metres of water above the field.
-  drain: 0.8,                            // CALIBRATE
-  a: 0.0011,                             // CALIBRATE: metres per mm of upstream rain
+  drain: 0.85,                           // CALIBRATE: provisional fit for 2017-04-02
+  a: 0.0030,                             // CALIBRATE: provisional fit for 2017-04-02
   b: 0.0006,                             // CALIBRATE: metres per mm of rain on the farm
   baseLoss: 0.02,                        // CALIBRATE: metres lost per day to drainage/evaporation
   lagDays: 2,                            // CALIBRATE: days for hill rain to reach the haor
@@ -30,6 +30,6 @@ export const CONFIG = {
 
   // --- Satellite scout ---------------------------------------------------------
   // 3-day sum of upstream rainfall (mm)
-  watchMm: 120,                          // CALIBRATE
-  warningMm: 250,                        // CALIBRATE
+  watchMm: 100,                          // CALIBRATE
+  warningMm: 150,                        // CALIBRATE
 };

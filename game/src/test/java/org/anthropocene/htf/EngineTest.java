@@ -54,7 +54,7 @@ class EngineTest {
     }
 
     @Test void scoutStatusThresholds() {
-        Map<Integer, Double> r = new java.util.HashMap<>(Map.of(10, 50.0, 11, 50.0, 12, 50.0));
+        Map<Integer, Double> r = new java.util.HashMap<>(Map.of(10, 40.0, 11, 40.0, 12, 40.0));
         r.putAll(Map.of(20, 100.0, 21, 100.0, 22, 100.0));
         List<Day> d = makeData(r).days;
         assertEquals("calm", Engine.scoutStatus(d, 5, CFG));
@@ -74,6 +74,18 @@ class EngineTest {
         for (int k = 0; k < CFG.maxBundRaises; k++) s = Engine.act(s, Engine.ActionType.RAISE_BUND, CFG).state();
         assertEquals(CFG.startCoins - CFG.maxBundRaises * CFG.bundRaiseCost, s.coins);
         assertFalse(Engine.act(s, Engine.ActionType.RAISE_BUND, CFG).ok());
+    }
+
+    @Test void raisingTheBundChangesHeightAndRecordsAction() {
+        Season data = makeData(Map.of());
+        GameState before = Engine.createState(data, CFG, "long");
+
+        Engine.ActionResult result = Engine.act(before, Engine.ActionType.RAISE_BUND, CFG);
+
+        assertTrue(result.ok());
+        assertEquals(before.bund + CFG.bundRaise, result.state().bund, 1e-9);
+        assertEquals(before.coins - CFG.bundRaiseCost, result.state().coins);
+        assertTrue(result.state().events.stream().anyMatch(e -> e.type().equals("action")));
     }
 
     @Test void simulationIsDeterministic() {
