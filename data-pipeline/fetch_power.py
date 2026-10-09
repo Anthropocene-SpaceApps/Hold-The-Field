@@ -2,7 +2,7 @@
 """Fetch NASA POWER daily point data and write a season file the game can load.
 
 Standard library only. Example:
-    python3 data-pipeline/fetch_power.py --region haor --start 20170101 --end 20170430 --out data/haor-2017.json
+    python3 data-pipeline/fetch_power.py --region haor --start 20161201 --end 20170430 --out data/haor-2017.json
 
 Source: NASA POWER Daily API (https://power.larc.nasa.gov), community AG.
 """
@@ -40,7 +40,7 @@ def clean(v, default=0.0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--region", default="haor")
-    ap.add_argument("--start", default="20170101")
+    ap.add_argument("--start", default="20161201")
     ap.add_argument("--end", default="20170430")
     ap.add_argument("--out", default="data/haor-2017.json")
     a = ap.parse_args()

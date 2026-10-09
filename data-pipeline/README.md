@@ -4,7 +4,7 @@ Turns NASA POWER daily data into the JSON files in `/data` that the game loads.
 No API calls happen in the browser; the game works offline.
 
 ```bash
-python3 data-pipeline/fetch_power.py --region haor --start 20170101 --end 20170430 --out data/haor-2017.json
+python3 data-pipeline/fetch_power.py --region haor --start 20161201 --end 20170430 --out data/haor-2017.json
 ```
 
 - Needs only Python 3.8+ (standard library) and internet access to `power.larc.nasa.gov`.

@@ -36,6 +36,7 @@ export function createState(data, cfg, variety = 'long') {
     status: 'calm',
     finished: false,
     events: [],                  // [{i, date, type, text}]
+    history: [{ level: 0, bund: cfg.bundStart }], // per simulated day, for the season chart
   };
 }
 
@@ -47,7 +48,7 @@ export function maturityOn(dayIso, variety, cfg) {
 /** Advance one day. Returns a new state. */
 export function step(state, data, cfg) {
   if (state.finished) return state;
-  const s = { ...state, events: state.events.slice() };
+  const s = { ...state, events: state.events.slice(), history: state.history.slice() };
   const i = s.i + 1;
   if (i >= data.days.length) {
     s.finished = true;
@@ -63,6 +64,7 @@ export function step(state, data, cfg) {
   s.i = i;
   s.date = day.date;
   s.level = Math.max(0, s.level * cfg.drain + cfg.a * lagged.rainUp + cfg.b * day.rainFarm - cfg.baseLoss);
+  s.history.push({ level: s.level, bund: s.bund });
   s.status = scoutStatus(data.days, i, cfg);
   const rank = { calm: 0, watch: 1, warning: 2 };
   if (rank[s.status] > rank[state.status]) {
@@ -97,7 +99,7 @@ export function step(state, data, cfg) {
 
 /** Player actions. Returns { state, ok, reason }. */
 export function act(state, action, cfg) {
-  const s = { ...state, events: state.events.slice() };
+  const s = { ...state, events: state.events.slice(), history: state.history.slice() };
   switch (action.type) {
     case 'raiseBund':
       if (s.bundRaises >= cfg.maxBundRaises) return { state, ok: false, reason: 'Bund is already at maximum height' };
@@ -105,6 +107,7 @@ export function act(state, action, cfg) {
       s.coins -= cfg.bundRaiseCost;
       s.bund += cfg.bundRaise;
       s.bundRaises += 1;
+      s.history = s.history.slice(0, -1).concat({ ...s.history.at(-1), bund: s.bund });
       s.events.push(ev(s, 'action', `Raised bund to ${s.bund.toFixed(2)} m`));
       return { state: s, ok: true };
     case 'harvest':
@@ -136,6 +139,21 @@ export function autoplay(data, cfg, policy = 'rahim', variety = policy === 'rahi
     }
   }
   return s;
+}
+
+/** Season recap for the end screen: key days and how much warning the scout gave. */
+export function summarize(state) {
+  const first = (type) => state.events.find((e) => e.type === type);
+  const warning = first('warning'), flood = first('flood');
+  return {
+    yieldPct: state.yieldPct,
+    lost: !state.alive,
+    warningDate: warning?.date ?? null,
+    floodDate: flood?.date ?? null,
+    leadDays: warning && flood ? flood.i - warning.i : null, // days between the scout's warning and the water
+    coinsLeft: state.coins,
+    actions: state.events.filter((e) => e.type === 'action' || (e.type === 'harvest' && /early/.test(e.text))).length,
+  };
 }
 
 function ev(s, type, text) {

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Hold the Field · Team Anthropocene</title>
   <meta name="description" content="A strategy game where the climate raids your farm and NASA satellite data is your scout. NASA Space Apps Challenge 2026 · Field Shift." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ctext y=%2726%27 font-size=%2726%27%3E🌾%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
@@ -39,7 +40,7 @@
     <aside class="scout" aria-label="Satellite scout">
       <div class="scout-head">
         <span class="scout-title">🛰 Satellite Scout</span>
-        <span class="chip" id="status">Calm</span>
+        <span class="chip" id="status" role="status" aria-live="polite">Calm</span>
       </div>
       <div class="spark-label">Rain upstream (Meghalaya hills), last 14 days</div>
       <canvas id="spark" height="90"></canvas>
@@ -104,6 +105,10 @@
       <div><span class="k" id="endYouLabel">You</span><b id="endYou">0%</b><span>of the harvest saved</span></div>
       <div><span class="k" id="endOtherLabel">Rahim's way</span><b id="endOther">0%</b><span>of the harvest saved</span></div>
     </div>
+    <p class="lead" id="endLead"></p>
+    <div class="season-label">Water level vs your bund, whole season</div>
+    <canvas id="seasonChart" height="130" aria-label="Chart of water level against bund height over the season"></canvas>
+    <ul class="log timeline" id="endLog"></ul>
     <p class="endline" id="endLine"></p>
     <button class="btn primary" id="endAgain">Play again</button>
   </dialog>

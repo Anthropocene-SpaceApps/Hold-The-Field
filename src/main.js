@@ -1,8 +1,8 @@
 // Boot + game loop + wiring between sim, renderer and UI.
 import { CONFIG } from './sim/config.js';
-import { createState, step, act, autoplay } from './sim/engine.js';
+import { createState, step, act, autoplay, summarize } from './sim/engine.js';
 import { createFarmRenderer } from './render/farm.js';
-import { renderScout, fmtDate } from './ui/scout.js';
+import { renderScout, fmtDate, drawSeason, fillTimeline } from './ui/scout.js';
 import { loadSeason } from './data/loader.js';
 
 const $ = (id) => document.getElementById(id);
@@ -82,8 +82,14 @@ function showEnd() {
   $('endYou').textContent = `${Math.round(state.yieldPct * 100)}%`;
   $('endOther').textContent = `${Math.round(other.yieldPct * 100)}%`;
   $('endTitle').textContent = state.yieldPct > 0 ? 'The rice is home' : 'The water took it all';
+  const sum = summarize(state);
+  $('endLead').textContent = sum.leadDays === null
+    ? (sum.floodDate ? 'The flood came, and no scout warning came before it.' : 'No flood reached the bund this season.')
+    : `NASA data warned ${sum.leadDays} day${sum.leadDays === 1 ? '' : 's'} before the water arrived (${fmtDate(sum.warningDate)} → ${fmtDate(sum.floodDate)}).`;
   $('endLine').textContent = 'Same field, same real rain. The only difference is whether the warning reached the farmer.';
   $('end').showModal();
+  drawSeason($('seasonChart'), state, data);
+  fillTimeline($('endLog'), state.events);
 }
 
 function toast(msg) {
