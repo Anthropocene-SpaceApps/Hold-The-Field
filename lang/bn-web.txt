@@ -1,0 +1,62 @@
+# English => Bengali for strings only the web build uses. The strings shared with the desktop build are in
+# game/src/main/resources/lang/bn.txt (both builds read that file). {} marks a value, \n a line break.
+# Written with an AI assistant: a native speaker should review it before it is presented as final.
+
+# ---- title, prologue, closing line (the video script's hook)
+Desktop edition => ডেস্কটপ সংস্করণ
+Fetching NASA POWER data… => NASA POWER ডেটা আনা হচ্ছে…
+NASA POWER daily data (live) => NASA POWER-এর দৈনিক ডেটা (সরাসরি)
+SAMPLE DATA  -  real NASA data not loaded yet => নমুনা ডেটা  -  আসল NASA ডেটা এখনও আনা হয়নি
+Sunamganj haor · April 2017 => সুনামগঞ্জের হাওর · এপ্রিল ২০১৭
+My father used to say, the sky always warns you before it takes. => আমার আব্বা বলতেন, আকাশ কিছু নেওয়ার আগে সবসময় জানিয়ে দেয়।
+Rahim, rice farmer => রহিম, ধানচাষি
+For forty years he believed it. Then, ten days before harvest, the water came in one night. NASA satellites had recorded the rain building in the hills upstream. The warning existed. It never reached him. => চল্লিশ বছর তিনি এ কথা বিশ্বাস করেছেন। তারপর ধান কাটার দশ দিন আগে এক রাতে পানি এলো। উজানের পাহাড়ে বৃষ্টি জমছিল, NASA-র স্যাটেলাইট তা রেকর্ড করেছিল। সতর্কবার্তা ছিল। শুধু তাঁর কাছে পৌঁছায়নি।
+Replay his season. This time NASA's data is your scout. => তাঁর মৌসুমটি আবার খেলুন। এবার NASA-র ডেটা আপনার স্কাউট।
+Rahim is a composite character based on real haor farmers' experiences. => রহিম একটি কাল্পনিক চরিত্র, হাওরের সত্যিকারের কৃষকদের অভিজ্ঞতা থেকে গড়া।
+Now, it can. => এখন, পারে।
+The warning existed. It never reached him. => সতর্কবার্তা ছিল। শুধু তাঁর কাছে পৌঁছায়নি।
+The scout spoke. Next season, act on it sooner: raise the bund at WATCH, cut the rice at WARNING. => স্কাউট জানিয়েছিল। পরের মৌসুমে আরও আগে ব্যবস্থা নিন: সতর্ক থাকুন অবস্থায় বাঁধ উঁচু করুন, সতর্কবার্তায় ধান কাটুন।
+
+# ---- plan screen
+Satkhira Coast => সাতক্ষীরা উপকূল
+Salt surge · coming in November => লবণাক্ততা · নভেম্বরে আসছে
+
+# ---- in game
+Rice {}% => ধান {}%
+Tk {} => {} টাকা
+Tank {} => ট্যাংক {}
+Irrigate the rice from the village tank => গ্রামের ট্যাংক থেকে ধানে সেচ দিন
+Raise the earth embankment between the field and the haor => মাঠ আর হাওরের মাঝের মাটির বাঁধ উঁচু করুন
+Cut the rice (from 80% maturity) => ধান কাটুন (৮০% পাকার পর থেকে)
+Tap Play to begin the season => মৌসুম শুরু করতে প্লে চাপুন
+Press Space to begin the season => মৌসুম শুরু করতে স্পেস চাপুন
+Look around first: drag to turn, scroll or pinch to zoom. Press 3 for the NASA satellite view. => আগে চারপাশ দেখে নিন: ঘোরাতে টানুন, জুম করতে স্ক্রল বা চিমটি দিন। NASA স্যাটেলাইট ভিউয়ের জন্য ৩ চাপুন।
+Look around first: drag to turn, scroll or pinch to zoom over the embankment. Press 3 for the NASA satellite view. => আগে চারপাশ দেখে নিন: ঘোরাতে টানুন, বাঁধের ওপারে দেখতে স্ক্রল বা চিমটি দিয়ে জুম করুন। NASA স্যাটেলাইট ভিউয়ের জন্য ৩ চাপুন।
+Start the season => মৌসুম শুরু করুন
+Back to the farm => খামারে ফিরুন
+Rahim's way: no warning reaches the farm and no action is taken. Press Space and watch the real weather decide. => রহিমের পথ: খামারে কোনো সতর্কবার্তা পৌঁছায় না, কোনো ব্যবস্থাও নেওয়া হয় না। স্পেস চাপুন আর দেখুন সত্যিকারের আবহাওয়া কী ঠিক করে।
+SAMPLE DATA: this season uses the labelled sample file until the real NASA POWER data is added. => নমুনা ডেটা: আসল NASA POWER ডেটা যোগ না হওয়া পর্যন্ত এই মৌসুমে চিহ্নিত নমুনা ফাইল ব্যবহার হচ্ছে।
+Loaded real NASA POWER data: {} days => NASA POWER-এর আসল ডেটা এসেছে: {} দিন
+Could not reach NASA POWER. Using the bundled data. => NASA POWER-এ পৌঁছানো যায়নি। সঙ্গের ডেটা ব্যবহার হচ্ছে।
+Report saved: a text summary and a CSV of every day => রিপোর্ট সংরক্ষিত: একটি লিখিত সারাংশ আর প্রতিদিনের একটি CSV
+Raised bund to {} m => বাঁধ উঁচু করা হলো {} মিটারে
+This device could not start 3D graphics (WebGL). => এই ডিভাইসে 3D গ্রাফিক্স (WebGL) চালু করা গেল না।
+
+# ---- menu
+Game Paused => খেলা থামানো আছে
+Restart this season => এই মৌসুম আবার শুরু করুন
+Plan another season => আরেকটি মৌসুম পরিকল্পনা করুন
+
+# ---- data and model
+THIS COPY IS SAMPLE DATA, NOT REAL. Press the button below to load the real season from NASA POWER in this browser. => এই কপি নমুনা ডেটা, আসল নয়। এই ব্রাউজারে NASA POWER থেকে আসল মৌসুম আনতে নিচের বোতাম চাপুন।
+Fetched live from NASA POWER in this browser on {}. => {} তারিখে এই ব্রাউজারে NASA POWER থেকে সরাসরি আনা।
+Real NASA POWER data committed to the repository. => রিপোজিটরিতে রাখা NASA POWER-এর আসল ডেটা।
+NASA POWER (live) => NASA POWER (সরাসরি)
+Fetch from NASA POWER now => এখনই NASA POWER থেকে আনুন
+Use the bundled file => সঙ্গের ফাইল ব্যবহার করুন
+One bucket for the whole field, or one soil layer: no river routing, terrain, embankment failure, groundwater, canals or pumps. Rain from a single point stands in for the whole catchment or district. Crop growth is linear: no fertiliser, pests or disease.\nIt is a learning game calibrated to one real event per scenario, not a forecast. => পুরো মাঠের জন্য একটি বালতি, বা মাটির একটি স্তর: নদীর প্রবাহ, ভূপ্রকৃতি, বাঁধ ভাঙা, ভূগর্ভস্থ পানি, খাল বা পাম্প নেই। একটি বিন্দুর বৃষ্টি পুরো অববাহিকা বা জেলার প্রতিনিধি। ফসল সমানতালে বাড়ে: সার, পোকা বা রোগ নেই।\nএটি শেখার খেলা, প্রতিটি দৃশ্যপটে একটি সত্যিকারের ঘটনার সঙ্গে মেলানো; পূর্বাভাস নয়।
+Drag to look around, scroll or pinch to zoom. Space starts and pauses time; + and - change the speed. 1: raise the embankment, or irrigate in the drought scenario. 2: harvest (from 80% maturity). 3 or M: NASA satellite view. 4 or E: scout dashboard. Click Rahim to hear what he thinks. Esc opens the menu. => চারপাশ দেখতে টানুন, জুম করতে স্ক্রল বা চিমটি দিন। স্পেস সময় চালু ও বন্ধ করে; + আর - গতি বদলায়। ১: বাঁধ উঁচু করুন, খরার দৃশ্যপটে সেচ দিন। ২: ধান কাটুন (৮০% পাকার পর)। ৩ বা M: NASA স্যাটেলাইট ভিউ। ৪ বা E: স্কাউট ড্যাশবোর্ড। রহিম কী ভাবছেন শুনতে তাঁর ওপর ক্লিক করুন। Esc মেনু খোলে।
+Rahim is a composite character based on real haor farmers' experiences. The seasons are real; his story stands in for many. => রহিম একটি কাল্পনিক চরিত্র, হাওরের সত্যিকারের কৃষকদের অভিজ্ঞতা থেকে গড়া। মৌসুমগুলো সত্যি; তাঁর গল্প অনেকের গল্প।
+Alif, Safwat, Yasin, Zawad, Yaminur and Marwa. NASA Space Apps Challenge 2026, Chattogram, Bangladesh. Challenge: Field Shift. Data: NASA POWER. Every model, texture and sound in this game is generated by code. => আলিফ, সাফওয়াত, ইয়াসিন, জাওয়াদ, ইয়ামিনুর ও মারওয়া। NASA স্পেস অ্যাপস চ্যালেঞ্জ ২০২৬, চট্টগ্রাম, বাংলাদেশ। চ্যালেঞ্জ: ফিল্ড শিফট। ডেটা: NASA POWER। এই খেলার প্রতিটি মডেল, টেক্সচার আর শব্দ কোড দিয়ে তৈরি।
+Rahim => রহিম
+How to play => কীভাবে খেলবেন

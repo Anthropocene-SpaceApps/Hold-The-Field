@@ -31,12 +31,12 @@ Missing values (POWER fill value −999) are replaced and counted in `missing_va
 ### Where the files live
 
 - `data/*.json` is the single source of truth in the repo. The Java build bundles it into the jar.
-- A file downloaded by the launcher is written to `~/.hold-the-field/data/` and **takes priority** over the bundled one.
+- A file downloaded by the launcher is written to `~/.agrocene/data/` and **takes priority** over the bundled one.
 - `"sample": true` marks synthetic placeholder data. Both bundled files are currently synthetic and the game labels them everywhere until they are replaced. `data/barind-2022.json` is written by `data-pipeline/make_sample_barind.py` (a normal monsoon, then a three-week dry spell from 20 September, when Aman rice is flowering). **It does not describe what happened in 2022**; once the real NASA data is downloaded, the story is whatever the real weather was, so check the debrief and adjust the date range if that season was not dry.
 
 ## The flood model (haor), simplified on purpose
 
-All numbers are in `game/src/main/java/org/anthropocene/htf/sim/Config.java`. The browser prototype has its own copy in `src/sim/config.js` (older: fixed planting date, yield = maturity).
+All numbers are in `game/src/main/java/org/anthropocene/htf/sim/Config.java`. The web build uses an exact port in `src/sim/config.js` and `src/sim/engine.js`; both builds run the same test cases (`node --test` and `mvn test`) and give identical results, so change a number in both.
 
 1. **Water level** (metres above the field), each day:
    `level = max(0, level × drain + a × rainUp[t − lagDays] + b × rainFarm[t] − baseLoss)`
@@ -62,7 +62,7 @@ With the bundled sample data: no action loses 48% of the standard crop (52% kept
 
 ### Calibration (still to do)
 
-`a`, `b`, `drain`, `baseLoss`, `lagDays` and the bund heights should be tuned so that the **real 2017 rainfall floods the field near the documented flood date** (source: _add from research sheet_). This needs the real data file first. The prototype's `node scripts/calibrate.mjs data/haor-2017.json --target <date>` prints the `a` / `drain` pair that floods an unprotected crop on that date; paste the winner into `Config.java` (and keep the web copy in sync if it is still used).
+`a`, `b`, `drain`, `baseLoss`, `lagDays` and the bund heights should be tuned so that the **real 2017 rainfall floods the field near the documented flood date** (source: _add from research sheet_). This needs the real data file first. `node scripts/calibrate.mjs data/haor-2017.json --target <date>` prints the `a` / `drain` pair that floods an unprotected crop on that date while the scout still saves some; paste the winner into `Config.java` and `src/sim/config.js`. The `nasa-data` GitHub Action runs this report for you after fetching.
 
 For the drought scenario, calibrate the stress lines and `stressRate` the same way: with the real file, find when the soil first crossed the lines and make sure the warning leads it by several days.
 

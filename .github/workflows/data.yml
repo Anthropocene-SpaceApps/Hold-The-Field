@@ -1,0 +1,42 @@
+# Fetch the real NASA POWER seasons and open a pull request with them.
+# Run it from GitHub: Actions -> nasa-data -> Run workflow. (GitHub's runners can reach power.larc.nasa.gov.)
+name: nasa-data
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Fetch the haor flood season (Sunamganj + Meghalaya hills)
+        run: python3 data-pipeline/fetch_power.py --region haor --start 20161201 --end 20170430 --out data/haor-2017.json
+      - name: Fetch the Barind drought season
+        run: python3 data-pipeline/fetch_power.py --region barind --start 20220625 --end 20221215 --out data/barind-2022.json
+      - name: Calibration report (read it before merging)
+        run: |
+          echo '## Calibration on the real data' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          node scripts/calibrate.mjs data/haor-2017.json --target 2017-04-01 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git diff --quiet -- data && { echo "Data unchanged."; exit 0; }
+          BRANCH="data/nasa-power-$(date +%Y%m%d-%H%M)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add data
+          git commit -m "data: real NASA POWER seasons for the haor (2017) and the Barind (2022)"
+          git push origin "$BRANCH"
+          gh pr create --title "data: real NASA POWER seasons" --body "Fetched by the nasa-data workflow from the NASA POWER Daily API (community AG). See the run summary for the calibration report before merging." --base main --head "$BRANCH"

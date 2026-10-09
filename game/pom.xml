@@ -4,10 +4,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.anthropocene</groupId>
-  <artifactId>hold-the-field</artifactId>
+  <artifactId>agrocene</artifactId>
   <version>1.0.0</version>
   <packaging>jar</packaging>
-  <name>Hold the Field</name>
+  <name>Agrocene</name>
   <description>NASA Space Apps 2026 - Field Shift. A voxel farming game where NASA satellite data is your scout.</description>
 
   <properties>
@@ -72,7 +72,7 @@
   </dependencies>
 
   <build>
-    <finalName>hold-the-field</finalName>
+    <finalName>agrocene</finalName>
     <resources>
       <resource><directory>src/main/resources</directory></resource>
       <!-- single source of truth for season data: the repo-level data/ folder -->

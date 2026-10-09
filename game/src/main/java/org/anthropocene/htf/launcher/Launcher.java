@@ -49,7 +49,7 @@ public final class Launcher {
             UIManager.put("ScrollBar.thumbArc", 999);
             UIManager.put("ScrollBar.thumbInsets", new Insets(2, 2, 2, 2));
         } catch (RuntimeException ignored) { /* fall back to the default look */ }
-        frame = new JFrame("Hold the Field Launcher " + VERSION);
+        frame = new JFrame("Agrocene Launcher " + VERSION);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.add(banner(), BorderLayout.NORTH);
@@ -290,7 +290,7 @@ public final class Launcher {
                 settings.windowWidth = Math.max(640, Integer.parseInt(wh[0].trim()));
                 settings.windowHeight = Math.max(480, Integer.parseInt(wh[1].trim()));
             } catch (RuntimeException ex) {
-                JOptionPane.showMessageDialog(frame, "Window size must look like 1280x720", "Hold the Field", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Window size must look like 1280x720", "Agrocene", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             cfg.ramMb = ramMb[Math.max(0, ramBox.getSelectedIndex())];
@@ -299,7 +299,7 @@ public final class Launcher {
             settings.fullscreen = fs.isSelected();
             settings.vsync = vsync.isSelected();
             settings.save(); cfg.save();
-            JOptionPane.showMessageDialog(frame, "Saved.", "Hold the Field", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(frame, "Saved.", "Agrocene", JOptionPane.INFORMATION_MESSAGE);
         });
         return p;
     }
@@ -337,7 +337,7 @@ public final class Launcher {
                     code -> SwingUtilities.invokeLater(() -> {
                         console.append("Game exited with code " + code + "\n");
                         play.setEnabled(true); play.setText("PLAY");
-                        if (code != 0) JOptionPane.showMessageDialog(frame, "The game closed with an error (code " + code + ").\nSee the Console tab for details.", "Hold the Field", JOptionPane.WARNING_MESSAGE);
+                        if (code != 0) JOptionPane.showMessageDialog(frame, "The game closed with an error (code " + code + ").\nSee the Console tab for details.", "Agrocene", JOptionPane.WARNING_MESSAGE);
                         frame.setVisible(true);
                     }));
             if (cfg.closeOnLaunch) frame.setVisible(false);
@@ -349,12 +349,12 @@ public final class Launcher {
 
     private void openFolder() {
         try { Desktop.getDesktop().open(Paths.home().toFile()); }
-        catch (Exception e) { JOptionPane.showMessageDialog(frame, "Game folder:\n" + Paths.home(), "Hold the Field", JOptionPane.INFORMATION_MESSAGE); }
+        catch (Exception e) { JOptionPane.showMessageDialog(frame, "Game folder:\n" + Paths.home(), "Agrocene", JOptionPane.INFORMATION_MESSAGE); }
     }
 
     private static String readNews() {
         try (InputStream in = Launcher.class.getResourceAsStream("/news.txt")) {
-            return in == null ? "Welcome to Hold the Field." : new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) { return "Welcome to Hold the Field."; }
+            return in == null ? "Welcome to Agrocene." : new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) { return "Welcome to Agrocene."; }
     }
 }

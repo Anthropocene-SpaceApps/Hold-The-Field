@@ -1,4 +1,4 @@
-# Hold the Field: the Java game
+# Agrocene: the Java game
 
 Repository: https://github.com/Anthropocene-SpaceApps/Hold-The-Field
 
@@ -17,19 +17,19 @@ Developers: you need Java 21 and a GPU with OpenGL 3.3.
 
 ```bash
 cd game
-mvn package                               # builds target/hold-the-field.jar (all platforms in one jar)
-java -jar target/hold-the-field.jar       # opens the launcher
+mvn package                               # builds target/agrocene.jar (all platforms in one jar)
+java -jar target/agrocene.jar       # opens the launcher
 ```
 
-No display? `java -jar target/hold-the-field.jar --nogui` starts the game directly.
+No display? `java -jar target/agrocene.jar --nogui` starts the game directly.
 On macOS the launcher adds `-XstartOnFirstThread` for you. To start the game without the launcher on macOS:
-`java -XstartOnFirstThread -cp target/hold-the-field.jar org.anthropocene.htf.Main`.
+`java -XstartOnFirstThread -cp target/agrocene.jar org.anthropocene.htf.Main`.
 
 ### Real NASA data
 
 The repo ships with SAMPLE data so the game always starts (the title screen says so). In the launcher open
 **NASA Data** and press **Update NASA data**. It downloads the real season from NASA POWER into
-`~/.hold-the-field/data/` and the game uses it from then on. (The same thing from the command line:
+`~/.agrocene/data/` and the game uses it from then on. (The same thing from the command line:
 `python3 ../data-pipeline/fetch_power.py ...`, then copy the JSON over `../data/haor-2017.json`.)
 
 ## Controls (all rebindable in Options > Controls)
@@ -63,7 +63,7 @@ game/src/main/resources/lang/bn.txt   Bengali translations (English phrase => Be
 packaging/    jpackage installers, AppImage, icons
 ```
 
-Data lives in the repo's top-level `data/` folder and is bundled into the jar. Player files are in `~/.hold-the-field`
+Data lives in the repo's top-level `data/` folder and is bundled into the jar. Player files are in `~/.agrocene`
 (options, saves, profile, screenshots, downloaded data); set `-Dhtf.home=DIR` to move them.
 
 ## Testing
@@ -83,10 +83,10 @@ To see every screen without a GPU, use the dev capture tool under a virtual disp
 
 ```bash
 LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" \
-  java -Dhtf.capture=/tmp/shots -cp target/hold-the-field.jar org.anthropocene.htf.Main --width 960 --height 540
+  java -Dhtf.capture=/tmp/shots -cp target/agrocene.jar org.anthropocene.htf.Main --width 960 --height 540
 ```
 
 ## Calibration
 
 The water model constants are in `sim/Config.java`. They must be tuned against the real data once it is downloaded
-(see `../docs/DATA.md`); the web prototype's `node scripts/calibrate.mjs` does the same search.
+(see `../docs/DATA.md`); the web build's `node scripts/calibrate.mjs` does the same search.

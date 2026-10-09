@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Hold the Field
+Name=Agrocene
 GenericName=Climate farming game
 Comment=A farming game where the climate raids your fields and NASA satellite data is your scout
-Exec=HoldTheField
-Icon=hold-the-field
+Exec=Agrocene
+Icon=agrocene
 Terminal=false
 Categories=Game;Simulation;Education;
 Keywords=farming;climate;NASA;education;

@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Writes a plain-text summary and a CSV of the run to ~/.hold-the-field/reports so a teacher or extension officer
+ * Writes a plain-text summary and a CSV of the run to ~/.agrocene/reports so a teacher or extension officer
  * can use the result outside the game.
  */
 public final class ReportExporter {
@@ -34,7 +34,7 @@ public final class ReportExporter {
         Engine.Summary sum = Engine.summarize(st);
         Config cfg = s.cfg;
         StringBuilder b = new StringBuilder();
-        b.append("HOLD THE FIELD - SEASON REPORT\n==============================\n\n");
+        b.append("AGROCENE - SEASON REPORT\n==============================\n\n");
         b.append("Farm:        ").append(s.name).append('\n');
         b.append("Season:      ").append(s.season.id).append(s.season.sample ? "  (SAMPLE DATA, not real measurements)" : "  (NASA POWER daily data)").append('\n');
         b.append("Mode:        ").append(s.mode.equals(Session.MODE_RAHIM) ? "Rahim's way (no warning, no actions)" : "Scout mode").append('\n');

@@ -1,4 +1,4 @@
-HOLD THE FIELD 1.0.0
+AGROCENE 1.0.0
 NASA Space Apps Challenge 2026 - Field Shift
 
 WHAT IT IS

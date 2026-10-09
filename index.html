@@ -3,115 +3,88 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Hold the Field · Team Anthropocene</title>
-  <meta name="description" content="A strategy game where the climate raids your farm and NASA satellite data is your scout. NASA Space Apps Challenge 2026 · Field Shift." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ctext y=%2726%27 font-size=%2726%27%3E🌾%3C/text%3E%3C/svg%3E" />
+  <title>Agrocene · Team Anthropocene</title>
+  <meta name="description" content="A farming game where the climate raids your fields and NASA satellite data is your scout. Replay a real flash flood or drought in Bangladesh, day by day. NASA Space Apps Challenge 2026 · Field Shift." />
+  <meta name="theme-color" content="#0b1220" />
+  <meta property="og:title" content="Agrocene · NASA Space Apps 2026" />
+  <meta property="og:description" content="The climate raids your farm. NASA is your scout." />
+  <meta property="og:image" content="docs/images/web-title.jpg" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f1826'/%3E%3Cpath d='M16 27V12M16 12c-3-1.5-4.5-4.5-4.5-7.5 3 .8 4.5 3 4.5 7.5zm0 0c3-1.5 4.5-4.5 4.5-7.5-3 .8-4.5 3-4.5 7.5zm0 7c-3-1.5-5-4.5-5-7.5 3 .8 5 3 5 7.5zm0 0c3-1.5 5-4.5 5-7.5-3 .8-5 3-5 7.5z' stroke='%23e6be4b' stroke-width='1.8' fill='none'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles/main.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
 </head>
-<body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="title">Hold the Field</span>
-      <span class="sub">Sunamganj haor · boro season 2017</span>
-    </div>
-    <div class="date" id="date">1 Jan 2017</div>
-    <div class="controls">
-      <button id="play" class="btn primary" aria-label="Play">▶ Play</button>
-      <button id="speed" class="btn" aria-label="Speed">1×</button>
-      <button id="reset" class="btn" aria-label="Restart">↺</button>
-      <label class="mode">
-        <select id="mode" aria-label="Mode">
-          <option value="scout">With scout (you play)</option>
-          <option value="rahim">Rahim's way (no scout)</option>
-        </select>
-      </label>
-    </div>
-  </header>
+<body class="booting">
+  <canvas id="world" aria-label="3D view of the farm"></canvas>
 
-  <main class="layout">
-    <section class="farm-wrap">
-      <canvas id="farm" aria-label="Isometric view of the farm"></canvas>
-      <div class="sample-badge" id="sampleBadge" hidden>SAMPLE DATA, not real. Run the data pipeline.</div>
+  <div id="boot" class="boot" role="status">
+    <div class="boot-name">Agrocene</div>
+    <div class="boot-bar"><i></i></div>
+    <noscript>This game needs JavaScript.</noscript>
+  </div>
+
+  <!-- In-game overlay (mirrors the desktop HUD) -->
+  <div id="hud" class="hud" hidden>
+    <section class="card season-card" id="seasonCard">
+      <div class="row"><b id="hudDate" class="date">1 Jan 2017</b><span id="hudDay" class="muted small"></span></div>
+      <div class="timeline" id="timeline"><div class="track"></div><div class="fill" id="tlFill"></div><div class="dots" id="tlDots"></div><div class="now" id="tlNow"></div></div>
+      <div class="chip scout-chip" id="scoutChip" role="status" aria-live="polite"><i></i><span id="scoutText">SCOUT  CALM</span></div>
     </section>
 
-    <aside class="scout" aria-label="Satellite scout">
-      <div class="scout-head">
-        <span class="scout-title">🛰 Satellite Scout</span>
-        <span class="chip" id="status" role="status" aria-live="polite">Calm</span>
-      </div>
-      <div class="spark-label">Rain upstream (Meghalaya hills), last 14 days</div>
-      <canvas id="spark" height="90"></canvas>
-      <dl class="readings">
-        <div><dt>Rain upstream</dt><dd id="rUp">0 mm</dd></div>
-        <div><dt>Rain on farm</dt><dd id="rFarm">0 mm</dd></div>
-        <div><dt>Max temp</dt><dd id="tmax">0 °C</dd></div>
-        <div><dt>Soil wetness</dt><dd id="soil">0</dd></div>
-      </dl>
-      <div class="level">
-        <div class="level-label">Water vs bund</div>
-        <div class="level-bar"><div class="level-fill" id="levelFill"></div><div class="level-bund" id="levelBund"></div></div>
-      </div>
-      <ul class="log" id="log"></ul>
-      <button class="link" id="aboutBtn">Data &amp; model ⓘ</button>
-      <div class="source" id="source">NASA POWER</div>
-    </aside>
-  </main>
-
-  <footer class="actions">
-    <label class="variety">Rice
-      <select id="variety">
-        <option value="long">Long-duration</option>
-        <option value="short">Short-duration</option>
-      </select>
-    </label>
-    <div class="stat"><span>Maturity</span><div class="bar"><div id="matFill"></div></div><b id="matPct">0%</b></div>
-    <div class="stat coins">🪙 <b id="coins">100</b></div>
-    <button class="btn" id="bundBtn">Raise bund <small>(40)</small></button>
-    <button class="btn harvest" id="harvestBtn">Harvest now</button>
-  </footer>
-
-  <div class="toast" id="toast" role="status" hidden></div>
-
-  <dialog id="hint" class="card">
-    <h2>Hold the field</h2>
-    <ol>
-      <li><b>Press Play.</b> Each day uses real NASA satellite readings for this farm.</li>
-      <li><b>Watch the Scout.</b> Heavy rain in the hills upstream means a flash flood is coming.</li>
-      <li><b>Act in time.</b> Raise the bund or harvest early. Save Rahim's rice.</li>
-    </ol>
-    <button class="btn primary" id="hintOk">Let's go</button>
-  </dialog>
-
-  <dialog id="about" class="card">
-    <h2>Data &amp; model</h2>
-    <p id="aboutData"></p>
-    <p><b>This is a simplified model,</b> calibrated to reproduce one real flood. It is a learning game, not a forecast.</p>
-    <ul>
-      <li>Water level is a simple bucket: upstream rain (arriving after a short delay) and farm rain fill it; drainage empties it.</li>
-      <li>The flood starts when water rises above the bund. The crop dies after a few days fully under water.</li>
-      <li>The Scout warns using the 3-day total of upstream rain.</li>
-      <li>Rice matures linearly from transplanting. You can harvest from 80% maturity; yield equals maturity.</li>
-    </ul>
-    <p>Full details: <code>docs/DATA.md</code> in our repository.</p>
-    <button class="btn primary" id="aboutOk">Close</button>
-  </dialog>
-
-  <dialog id="end" class="card">
-    <h2 id="endTitle">Season over</h2>
-    <div class="compare">
-      <div><span class="k" id="endYouLabel">You</span><b id="endYou">0%</b><span>of the harvest saved</span></div>
-      <div><span class="k" id="endOtherLabel">Rahim's way</span><b id="endOther">0%</b><span>of the harvest saved</span></div>
+    <button class="card time-chip" id="timeChip" aria-label="Play or pause time (Space)"><span id="timeIcon"></span><b id="timeText">Paused</b><kbd>Space</kbd></button>
+    <div class="speed" id="speedBox" aria-label="Speed">
+      <button data-speed="0">1×</button><button data-speed="1">2×</button><button data-speed="2">4×</button><button data-speed="3">8×</button>
     </div>
-    <p class="lead" id="endLead"></p>
-    <div class="season-label">Water level vs your bund, whole season</div>
-    <canvas id="seasonChart" height="130" aria-label="Chart of water level against bund height over the season"></canvas>
-    <ul class="log timeline" id="endLog"></ul>
-    <p class="endline" id="endLine"></p>
-    <button class="btn primary" id="endAgain">Play again</button>
-  </dialog>
+
+    <section class="card data-card" id="dataCard">
+      <div class="label" id="dataLabel">NASA POWER  /  TODAY</div>
+      <div class="metrics" id="metrics"></div>
+      <canvas class="spark" id="spark" aria-label="Rain, last 14 days"></canvas>
+    </section>
+
+    <section class="card gauge" id="gauge">
+      <div class="label" id="gaugeLabel">Water</div>
+      <div class="gauge-body"><div class="tube"><div class="fill" id="gaugeFill"></div><div class="boost" id="gaugeBoost"></div><div class="line" id="gaugeLine"><span id="gaugeLineText">bund</span></div></div><div class="ticks" id="gaugeTicks"></div></div>
+      <b class="gauge-val" id="gaugeVal">0.00 m</b>
+    </section>
+
+    <div class="bottom">
+      <div class="maturity card-lite"><div class="bar"><div id="matFill"></div><i></i></div><b id="matText">Rice 0%</b><span id="matHint" class="small muted">ready at 80%</span></div>
+      <div class="bar-row">
+        <div class="coins card-lite" id="coins"></div>
+        <div class="slots" id="slots"></div>
+      </div>
+    </div>
+
+    <ol class="feed" id="feed" aria-live="polite"></ol>
+    <div class="speech card" id="speech" hidden><div class="avatar">R</div><div><b class="who" data-i18n>Rahim</b><p id="speechText"></p></div></div>
+    <div class="prompt card" id="prompt" hidden>
+      <b id="promptTitle">Press Space to begin the season</b>
+      <p id="promptText"></p>
+      <button class="btn primary" id="promptPlay"></button>
+    </div>
+    <div class="sat-overlay" id="satOverlay" hidden>
+      <div id="satLabels"></div>
+      <div class="card legend">
+        <div class="sat-head"><b data-i18n>NASA SATELLITE VIEW</b><span id="satSub"></span></div>
+        <div class="label" data-i18n>Data layers</div>
+        <div class="grad rain"></div><span id="legendRain" class="small muted">rain intensity (upstream)</span>
+        <div class="grad soil"></div><span class="small muted" data-i18n>soil wetness (dry to wet)</span>
+      </div>
+      <button class="btn" id="satBack" data-i18n>Back to the farm</button>
+    </div>
+    <div class="top-buttons">
+      <button class="icon-btn" id="soundBtn" aria-label="Sound"></button>
+      <button class="icon-btn" id="menuBtn" aria-label="Menu (Esc)"></button>
+    </div>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <div id="screen" class="screen-host"></div>
 
   <script type="module" src="src/main.js"></script>
 </body>

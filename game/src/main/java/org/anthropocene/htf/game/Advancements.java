@@ -15,7 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Minecraft-style advancements, saved in ~/.hold-the-field/profile.json. */
+/** Minecraft-style advancements, saved in ~/.agrocene/profile.json. */
 public final class Advancements {
     public record Adv(String id, String title, String description) {}
 
