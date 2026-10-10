@@ -136,7 +136,7 @@ public final class Game implements InputListener {
     // ------------------------------------------------------------------ lifecycle
 
     public void run() {
-        window.create("Hold the Field", settings);
+        window.create("Agrocene", settings);
         window.listener = this;
         glInfo = glGetString(GL_RENDERER) + " | OpenGL " + glGetString(GL_VERSION);
         r2 = new Renderer2D();

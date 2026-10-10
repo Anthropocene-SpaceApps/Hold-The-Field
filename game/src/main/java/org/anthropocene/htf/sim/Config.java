@@ -18,7 +18,7 @@ public final class Config {
         public Variety(String label, int fieldDays, double potential, String note) { this(label, fieldDays, potential, note, 0); }
     }
 
-    public static final Config DEFAULT = flood(0.0011, 0.8);
+    public static final Config DEFAULT = flood(0.0038, 0.9);
     public static final Config DROUGHT = drought();
 
     public final Hazard hazard;
@@ -46,8 +46,8 @@ public final class Config {
     public final int startCoins = 100;
 
     // --- Satellite scout (flood): 3-day upstream rain sum (mm) ---
-    public final double watchMm = 120;
-    public final double warningMm = 250;
+    public final double watchMm = 100;     // set on the real NASA POWER 2017 season (see docs/DATA.md)
+    public final double warningMm = 150;
 
     // --- Drought: NASA root-zone wetness plus irrigation, stress accumulates on dry days ---
     public final int irrigationCost = 12;

@@ -56,9 +56,9 @@ jobs:
           packaging/build-appimage.sh
           packaging/package.sh installer
           mkdir -p dist
-          cp game/target/jpackage/installer/*.deb "dist/HoldTheField-$VERSION-linux-amd64.deb"
-          cp game/target/hold-the-field.jar "dist/HoldTheField-$VERSION.jar"
-          tar -C game/target/jpackage/app-image -czf "dist/HoldTheField-$VERSION-linux-x64-portable.tar.gz" HoldTheField
+          cp game/target/jpackage/installer/*.deb "dist/Agrocene-$VERSION-linux-amd64.deb"
+          cp game/target/agrocene.jar "dist/Agrocene-$VERSION.jar"
+          tar -C game/target/jpackage/app-image -czf "dist/Agrocene-$VERSION-linux-x64-portable.tar.gz" Agrocene
 
       - name: Package (Windows)
         if: matrix.name == 'windows'
@@ -73,19 +73,19 @@ jobs:
           packaging/package.sh app-image
           packaging/package.sh installer
           mkdir -p dist
-          cp game/target/jpackage/installer/*.msi "dist/HoldTheField-$VERSION-windows-x64.msi"
-          powershell -NoProfile -Command "Compress-Archive -Path 'game/target/jpackage/app-image/Hold the Field' -DestinationPath 'dist/HoldTheField-$env:VERSION-windows-x64-portable.zip'"
+          cp game/target/jpackage/installer/*.msi "dist/Agrocene-$VERSION-windows-x64.msi"
+          powershell -NoProfile -Command "Compress-Archive -Path 'game/target/jpackage/app-image/Agrocene' -DestinationPath 'dist/Agrocene-$env:VERSION-windows-x64-portable.zip'"
 
       - name: Package (macOS)
         if: startsWith(matrix.name, 'macos')
         run: |
           packaging/package.sh installer
           mkdir -p dist
-          cp game/target/jpackage/installer/*.dmg "dist/HoldTheField-$VERSION-${{ matrix.name }}.dmg"
+          cp game/target/jpackage/installer/*.dmg "dist/Agrocene-$VERSION-${{ matrix.name }}.dmg"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: HoldTheField-${{ matrix.name }}
+          name: Agrocene-${{ matrix.name }}
           path: dist/*
           if-no-files-found: error
 
@@ -107,6 +107,6 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Hold the Field $GITHUB_REF_NAME" \
+            --title "Agrocene $GITHUB_REF_NAME" \
             --generate-notes \
             --notes "Downloads: Windows (.msi or portable .zip), macOS (.dmg, Apple silicon or Intel), Linux (.AppImage, .deb or portable .tar.gz), or the plain jar for any system with Java 21. See the README for what each needs. These builds are not code-signed, so Windows SmartScreen and macOS Gatekeeper will ask you to confirm."

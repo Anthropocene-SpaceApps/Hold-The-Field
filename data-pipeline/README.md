@@ -5,7 +5,7 @@ The game never calls the API while you play; it works offline.
 
 Two ways to fetch, with identical output:
 
-- **In the game's launcher** (easiest): open **NASA Data** and press **Update NASA data**. The files go to `~/.hold-the-field/data/` and take priority over the bundled sample.
+- **In the game's launcher** (easiest): open **NASA Data** and press **Update NASA data**. The files go to `~/.agrocene/data/` and take priority over the bundled sample.
 - **From the command line** (this folder), to refresh the file that ships in the repo:
 
 ```bash

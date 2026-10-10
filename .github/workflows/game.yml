@@ -17,5 +17,5 @@ jobs:
         run: mvn -B -f game/pom.xml verify
       - uses: actions/upload-artifact@v4
         with:
-          name: hold-the-field-jar
-          path: game/target/hold-the-field.jar
+          name: agrocene-jar
+          path: game/target/agrocene.jar

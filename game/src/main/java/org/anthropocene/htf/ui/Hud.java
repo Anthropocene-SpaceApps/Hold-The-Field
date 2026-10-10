@@ -351,7 +351,7 @@ public final class Hud {
     public static void debug(Game g, Renderer2D r, int fps) {
         Session s = g.session();
         List<String> lines = new ArrayList<>();
-        lines.add("Hold the Field 1.0.0   " + fps + " fps");
+        lines.add("Agrocene 1.0.0   " + fps + " fps");
         lines.add("GPU: " + g.glInfo());
         var p = g.player();
         lines.add(String.format("XYZ %.2f / %.2f / %.2f   yaw %.0f pitch %.0f %s%s", p.pos.x, p.pos.y, p.pos.z, Math.toDegrees(p.yaw) % 360, Math.toDegrees(p.pitch),

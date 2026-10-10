@@ -5,7 +5,7 @@ import org.anthropocene.htf.game.Game;
 
 /**
  * Game entry point. Normally started by the launcher; running it directly also works:
- *   java -cp hold-the-field.jar org.anthropocene.htf.Main [--width N --height N --fullscreen --windowed]
+ *   java -cp agrocene.jar org.anthropocene.htf.Main [--width N --height N --fullscreen --windowed]
  * (add -XstartOnFirstThread on macOS).
  */
 public final class Main {

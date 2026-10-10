@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Where the launcher and game keep their files: ~/.hold-the-field (override with -Dhtf.home=...). */
+/** Where the launcher and game keep their files: ~/.agrocene (override with -Dhtf.home=...). */
 public final class Paths {
     private Paths() {}
 
     public static Path home() {
         String override = System.getProperty("htf.home");
-        Path p = override != null ? Path.of(override) : Path.of(System.getProperty("user.home"), ".hold-the-field");
+        Path p = override != null ? Path.of(override) : Path.of(System.getProperty("user.home"), ".agrocene");
         return ensure(p);
     }
     public static Path dataDir() { return ensure(home().resolve("data")); }

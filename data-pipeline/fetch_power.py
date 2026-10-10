@@ -63,7 +63,9 @@ def main():
         })
 
     out = {
+        "id": Path(a.out).stem,
         "region": f"{a.region}",
+        "hazard": reg.get("hazard", "flood"),
         "season": f"{a.start}-{a.end}",
         "sample": False,
         "source": "NASA POWER Daily API, community AG",

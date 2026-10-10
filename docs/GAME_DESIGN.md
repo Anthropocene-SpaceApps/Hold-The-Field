@@ -1,4 +1,4 @@
-# Game design: how Hold the Field answers the challenge
+# Game design: how Agrocene answers the challenge
 
 **Challenge:** Field Shift: Adapting Farms with NASA Data.
 **Players:** students in farming regions, farming families, agricultural extension officers.
@@ -34,7 +34,7 @@ true when the real NASA data replaces the sample data.
 | Varieties | Short (90 days, 85%) or long (115 days, 100%) | Drought-tolerant (100 days, 88%) or standard (120 days, 100%) |
 | Look | Green paddy, rain, floodwater | Red soil, dust haze, baked mud, wilting rice |
 
-Both run on the same pure engine (`sim/Engine.java`), the same debrief and the same planting-window analysis.
+Both run on the same pure engine (`sim/Engine.java`, ported 1:1 to `src/sim/engine.js` for the web build), the same debrief and the same planting-window analysis.
 
 ## Bengali
 
@@ -66,7 +66,7 @@ labelled SAMPLE until the launcher downloads the real season; nothing synthetic 
 ## Making it usable outside the game
 
 - **Save report** on the debrief writes a text summary and a CSV (daily data, water level, embankment) to
-  `~/.hold-the-field/reports`. An extension officer can print it or open it in a spreadsheet.
+  `~/.agrocene/reports`. An extension officer can print it or open it in a spreadsheet.
 - **Rahim's way** mode lets a class watch the no-warning farmer without playing.
 - Everything runs offline after one data download.
 

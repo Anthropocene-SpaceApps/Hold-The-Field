@@ -4,10 +4,10 @@ The game ships as native packages, each with its own Java runtime, so players do
 
 | Platform | Files | Built by |
 |---|---|---|
-| Linux | `HoldTheField-<version>-x86_64.AppImage`, `.deb`, portable `.tar.gz` | `packaging/build-appimage.sh`, `packaging/package.sh` |
+| Linux | `Agrocene-<version>-x86_64.AppImage`, `.deb`, portable `.tar.gz` | `packaging/build-appimage.sh`, `packaging/package.sh` |
 | Windows | `.msi` installer and a portable `.zip` | `packaging/package.sh` (jpackage + WiX) |
 | macOS | `.dmg` for Apple silicon and for Intel | `packaging/package.sh` (jpackage) |
-| Any system with Java 21 | `HoldTheField-<version>.jar` | `mvn package` |
+| Any system with Java 21 | `Agrocene-<version>.jar` | `mvn package` |
 
 All of them start the launcher; **PLAY** starts the game in a second Java process using the bundled runtime.
 
@@ -30,7 +30,7 @@ You need a JDK 21 (with `jpackage`) and Maven.
 mvn -f game/pom.xml package                  # the jar
 packaging/package.sh app-image               # a self-contained folder: game/target/jpackage/app-image
 packaging/package.sh installer               # .msi / .dmg / .deb for the platform you are on
-packaging/build-appimage.sh                  # Linux only: dist/HoldTheField-1.0.0-x86_64.AppImage
+packaging/build-appimage.sh                  # Linux only: dist/Agrocene-1.0.0-x86_64.AppImage
 APPDIR_ONLY=1 packaging/build-appimage.sh    # just assemble the AppDir to test ./AppRun
 ```
 
@@ -48,8 +48,8 @@ Notes that cost time once:
 The builds are **not code-signed**:
 
 - Windows SmartScreen: "Windows protected your PC" → **More info** → **Run anyway**.
-- macOS Gatekeeper: right-click the app → **Open** → **Open** (or `xattr -dr com.apple.quarantine "/Applications/Hold the Field.app"`).
-- Linux AppImage: `chmod +x HoldTheField-*.AppImage`, then run it. On systems without FUSE 2, run it with `--appimage-extract-and-run`.
+- macOS Gatekeeper: right-click the app → **Open** → **Open** (or `xattr -dr com.apple.quarantine "/Applications/Agrocene.app"`).
+- Linux AppImage: `chmod +x Agrocene-*.AppImage`, then run it. On systems without FUSE 2, run it with `--appimage-extract-and-run`.
 
 Signing needs a paid Apple Developer ID and a Windows code-signing certificate. If the team gets either, add the
 signing flags to `packaging/package.sh` (`--mac-sign`, and `signtool` for the `.msi`).

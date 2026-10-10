@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Player options, saved to ~/.hold-the-field/options.json. Shared by launcher and game. */
+/** Player options, saved to ~/.agrocene/options.json. Shared by launcher and game. */
 public final class Settings {
     // Video
     public int fov = 70;

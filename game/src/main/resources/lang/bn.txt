@@ -1,5 +1,5 @@
 # English => Bengali (বাংলা). One entry per line. {} marks a value, \n a line break.
-# Strings that are not listed stay in English. Keep brand and data names (NASA, POWER, Hold the Field) as they are.
+# Strings that are not listed stay in English. Keep brand and data names (NASA, POWER, Agrocene) as they are.
 
 # ---- general
 Done => সম্পন্ন
@@ -26,6 +26,7 @@ A farming game where the climate raids your fields and NASA satellite data is yo
 SAMPLE DATA  -  open the launcher to download real NASA data => নমুনা ডেটা  -  আসল NASA ডেটা নামাতে লঞ্চার খুলুন
 NASA POWER daily data => NASA POWER-এর দৈনিক ডেটা
 SAMPLE DATA => নমুনা ডেটা
+The climate raids your farm. NASA is your scout. => জলবায়ু আপনার খামারে হানা দেয়। NASA আপনার স্কাউট।
 
 # ---- scenarios and varieties
 Sunamganj Haor, Boro 2017 => সুনামগঞ্জ হাওর, বোরো ২০১৭
