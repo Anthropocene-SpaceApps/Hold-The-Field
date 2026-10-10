@@ -41,7 +41,7 @@ class SessionSaveTest {
     }
 
     @Test void droughtSessionRestoresWithItsIrrigation() throws IOException {
-        Season dry = SeasonCatalog.load("barind-2022");
+        Season dry = SeasonCatalog.load("barind-2010");
         Session a = new Session(dry, Session.MODE_SCOUT, "long", "Dry test");
         assertTrue(a.cfg.isDrought());
         a.timePaused = false;
@@ -53,7 +53,7 @@ class SessionSaveTest {
 
         SaveManager.save(a.toSave());
         SaveManager.SaveData loaded = SaveManager.list().stream().filter(d -> d.id.equals(a.id)).findFirst().orElseThrow();
-        assertEquals("barind-2022", loaded.seasonId);
+        assertEquals("barind-2010", loaded.seasonId);
         Session b = Session.restore(dry, loaded);
         assertEquals(a.state.i, b.state.i);
         assertEquals(a.state.coins, b.state.coins);

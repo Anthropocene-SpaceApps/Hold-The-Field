@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Write the SYNTHETIC placeholder season for the Barind drought scenario (data/barind-2022.json).
+"""Write a legacy SYNTHETIC placeholder season for the Barind drought scenario.
 
 It is not measured data. It exists so the game always starts; it is labelled SAMPLE everywhere. The shape is a normal
 monsoon followed by a three-week dry spell from 20 September, when Aman rice is flowering. Replace it with the real
 season: launcher -> NASA Data -> Update NASA data, or
 
-    python3 data-pipeline/fetch_power.py --region barind --start 20220625 --end 20221215 --out data/barind-2022.json
+This legacy generator is not used by the real 2010 scenario.
 """
 import json, random
 from datetime import date, timedelta
@@ -70,5 +70,5 @@ out = {
     "units": {"rainUp": "mm/day", "rainFarm": "mm/day", "tmax": "degC", "soil": "0-1 (GWETROOT)"},
     "days": days,
 }
-Path(__file__).resolve().parents[1].joinpath("data", "barind-2022.json").write_text(json.dumps(out, indent=1))
-print(f"Wrote data/barind-2022.json: {len(days)} days")
+Path(__file__).resolve().parents[1].joinpath("data", "barind-sample.json").write_text(json.dumps(out, indent=1))
+print(f"Wrote data/barind-sample.json: {len(days)} days")

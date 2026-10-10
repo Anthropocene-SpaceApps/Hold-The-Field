@@ -26,7 +26,7 @@ true when the real NASA data replaces the sample data.
 
 ## Two scenarios, one engine
 
-| | Sunamganj haor, boro 2017 | Barind Tract, Aman 2022 |
+| | Sunamganj haor, boro 2017 | Barind Tract, Aman 2010 |
 |---|---|---|
 | Hazard | Flash flood from upstream rain | Dry spell during flowering |
 | NASA signal | Upstream rain, 3-day total | Farm rain over 7 days and root-zone soil wetness |
@@ -60,8 +60,8 @@ POWER is global, so the same engine works anywhere by changing coordinates (`dat
 ## How honest the model is
 
 It is a simplified teaching model (one water bucket, one upstream point, linear growth, game-parameter yield potentials)
-calibrated to one event. The game says so on its "Data and model" screen and in the exported report. The bundled data is
-labelled SAMPLE until the launcher downloads the real season; nothing synthetic is presented as measured.
+calibrated to the real 2017 flood and 2010 drought snapshots. The game says so on its "Data and model" screen and in the
+exported report. The stress thresholds are tuned to a modelled soil index, not presented as universal field measurements.
 
 ## Making it usable outside the game
 
