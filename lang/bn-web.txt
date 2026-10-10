@@ -83,5 +83,13 @@ BORO RICE: HARVESTED => বোরো ধান: কাটা হয়েছে
 
 # ---- challenge script (latest)
 You might think Hashem lost his harvest in April. But it was in December, when he chose a rice that needs {} days instead of a {}-day one, which would have been home before the flood had a chance to ruin it. => হয়তো ভাবছেন হাশেম এপ্রিলে ফসল হারিয়েছিলেন। কিন্তু আসলে ডিসেম্বরে, যেদিন তিনি {} দিনের ধান বেছে নিয়েছিলেন, {} দিনের ধানের বদলে, যা বন্যা ক্ষতি করার আগেই ঘরে উঠে যেত।
-{} days from seed, seedbed included => বীজতলাসহ বীজ থেকে {} দিন
 A farm's strategic partner built on real NASA data. The climate raids your farm, and you cannot let it win. Replay a real flash flood or drought, day by day. => খামারের কৌশলগত সঙ্গী, NASA-র আসল ডেটায় গড়া। জলবায়ু আপনার খামারে হানা দেয়, আর আপনি তাকে জিততে দেবেন না। হাওরের সত্যিকারের এক আকস্মিক বন্যা বা খরার মৌসুম, দিনের পর দিন আবার খেলুন।
+
+# ---- plan screen v3 (shorter, colour-coded)
+No warning => সতর্কবার্তা নেই
+NASA scout on your side => NASA-র স্কাউট আপনার পাশে
+Watch the scout. Act when it warns. => স্কাউটের দিকে নজর রাখুন। সতর্ক করলেই ব্যবস্থা নিন।
+Rahim plants long rice on the usual date. No warning. => রহিম স্বাভাবিক তারিখে দীর্ঘ মেয়াদি ধান লাগায়। কোনো সতর্কবার্তা নেই।
+Flood season => বন্যার মৌসুম
+{} days => {} দিন
+{} days from seed => বীজ থেকে {} দিন

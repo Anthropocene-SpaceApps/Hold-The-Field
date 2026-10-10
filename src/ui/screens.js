@@ -133,7 +133,6 @@ export function prologueScreen({ season, cfg, onContinue, onBack, onLine }) {
         <div class="quote-en quote">“${esc(OPEN_EN[0])}<br>${esc(OPEN_EN[1])}”</div>
         <div class="who">${T('Nodi, Hashem\'s daughter, remembering 2017')}</div>
         <p>${f('You might think Hashem lost his harvest in April. But it was in December, when he chose a rice that needs {} days instead of a {}-day one, which would have been home before the flood had a chance to ruin it.', num(longDays), num(shortDays))}</p>
-        <p>${T('Go back to December. Choose the seed and the date, read the NASA data, and see if the rice is home before the water comes.')}</p>
         <p class="note">${T('Hashem and Nodi are composite characters based on real haor farmers\' experiences. The rain is real NASA data.')}</p>
         <div class="panel-foot"><button class="btn" id="pBack">${T('Back')}</button><button class="btn primary" id="pGo">${T('Back to December')}</button></div>
       </section>`);
@@ -147,56 +146,71 @@ export function prologueScreen({ season, cfg, onContinue, onBack, onLine }) {
 
 // ===================================================================== plan the season
 
+// Colour language of the plan screen: terrain colour, Hashem's way = warm (the bad outcome), scout = green (the good one).
+const TONE = { 'haor-2017': '#58a9e8', 'barind-2022': '#e6be4b', coast: '#6fd6cf', hashem: '#ff9a5c', scout: '#5bd18a' };
+const toneOf = (id) => TONE[id] || (String(id).includes('satkhira') || String(id).includes('coast') ? TONE.coast : '#8fa3bc');
+// Where the hazard falls in each season, so the planting dates read at a glance. Flood: April 2017 (real). The Barind
+// drought date is not shown: the sample file is not a real measurement.
+const RISK = { 'haor-2017': { date: '2017-04-01', label: 'Flood season' } };
+const dayNum = (iso) => Date.parse(iso) / 86400000;
+
 export function planScreen({ initial, onStart, onBack }) {
-  const sel = { scenario: initial?.scenario ?? 'haor-2017', mode: initial?.mode ?? MODE_SCOUT, variety: initial?.variety ?? 'short', dateIdx: initial?.dateIdx ?? 1 };
+  const sel = { scenario: initial?.scenario ?? 'haor-2017', mode: initial?.mode ?? MODE_RAHIM, variety: initial?.variety ?? 'short', dateIdx: initial?.dateIdx ?? 1 };
   const cfgOf = () => (CATALOG.find((c) => c.id === sel.scenario)?.hazard === 'drought' ? DROUGHT : FLOOD);
   const render = () => {
     const cfg = cfgOf(), dry = isDrought(cfg), scout = sel.mode === MODE_SCOUT;
-    const ripe = (idx, v = sel.variety) => addDays(cfg.transplantOptions[idx][0], cfg.varieties[v].fieldDays);
-    const v = cfg.varieties[scout ? sel.variety : 'long'];
-    const plant = scout ? cfg.transplantOptions[sel.dateIdx][0] : cfg.defaultTransplant;
-    const ripeDate = addDays(plant, v.fieldDays);
-    const plan = scout
-      ? f(dry ? '{}, transplanted {}, ripe about {}. Irrigate when the scout warns: the soil must stay wet while the rice flowers.'
-        : '{}, transplanted {}, ripe about {}. You can harvest from 80% maturity, so a warning can still save part of the crop.', t(v.label), date(plant), date(ripeDate))
-      : t(dry ? 'Standard rice transplanted on the usual date, no satellite warning, no irrigation. You watch the real weather decide.'
-        : 'Long-duration rice transplanted on the usual date, no satellite warning, no actions. You watch the real rain decide.');
-    const why = t(dry
-      ? 'In the Barind Tract the monsoon can fail in the weeks when rice flowers. A tolerant variety copes with dry soil but yields less; the NASA soil and rain data tell you when to irrigate.'
-      : 'In flood-prone haors the rain that arrives in spring comes from the hills upstream. Rice that ripens earlier can be harvested before the water arrives; rice that ripens later can only be saved by watching the data.');
+    // What is shown as chosen: the player's picks in scout mode, Hashem's fixed plan (long rice, usual date) in his way.
+    const shownVar = scout ? sel.variety : 'long';
+    const shownDate = scout ? sel.dateIdx : cfg.transplantOptions.findIndex((o) => o[0] === cfg.defaultTransplant);
+    const ripeOf = (i, v = shownVar) => addDays(cfg.transplantOptions[i][0], cfg.varieties[v].fieldDays);
+    const risk = RISK[sel.scenario];
+    // one shared time axis for the three date cards: earliest planting to latest ripening (or the risk line)
+    const t0 = dayNum(cfg.transplantOptions[0][0]);
+    const t1 = Math.max(...cfg.transplantOptions.map((o, i) => dayNum(ripeOf(i))), risk ? dayNum(risk.date) + 10 : 0);
+    const pos = (iso) => `${Math.max(0, Math.min(100, ((dayNum(iso) - t0) / (t1 - t0)) * 100)).toFixed(1)}%`;
+    const lock = scout ? '' : 'disabled';
+    const tone = toneOf(sel.scenario);
+    const modeBtn = (mode, key, name, note) => `<button class="choice tone ${sel.mode === mode ? 'on' : ''}" style="--tone:${TONE[key]}" data-mode="${mode}"><b>${T(name)}</b><span>${T(note)}</span></button>`;
+    const varBtn = (k, key) => {
+      const vv = cfg.varieties[k];
+      return `<button class="choice variety tone ${shownVar === k ? 'on' : ''} ${scout ? '' : 'fixed'}" style="--tone:${TONE[key]}" data-var="${k}" ${lock} title="${esc(t(vv.note))}">
+        <b>${T(vv.label)}</b>
+        <span class="days">${f('{} days', num(vv.fieldDays))}</span>
+        ${dry ? '' : `<span class="seedline">${f('{} days from seed', num(vv.fieldDays + BRAND.seedbedDays))}</span>`}
+        <div class="yield-bar"><i style="width:${vv.potential * 100}%"></i></div>
+        <span>${f('{}% of full yield', Math.round(vv.potential * 100))}</span></button>`;
+    };
+    const dateBtn = (o, i) => {
+      const plant = o[0], ripe = ripeOf(i);
+      return `<button class="choice date tone ${shownDate === i ? 'on' : ''} ${scout ? '' : 'fixed'}" style="--tone:${scout ? TONE.scout : TONE.hashem}" data-date="${i}" ${lock}>
+        <b>${T(o[1])}</b>
+        <span class="ripe">${f('ripe about {}', date(ripe, false))}</span>
+        <div class="strip"><i style="left:${pos(plant)};width:calc(${pos(ripe)} - ${pos(plant)})"></i>${risk ? `<u style="left:${pos(risk.date)}"></u>` : ''}</div>
+      </button>`;
+    };
+    const note = scout ? t('Watch the scout. Act when it warns.') : t('Rahim plants long rice on the usual date. No warning.');
     const h = mount('plan', `
-      <section class="card panel" style="--w:1000px" role="dialog" aria-label="Plan the Season">
+      <section class="card panel plan" style="--w:1000px" role="dialog" aria-label="Plan the Season">
         <h2>${T('Plan the Season')}</h2>
-        <div class="label section-label">${T('Scenario')}</div>
-        <div class="choices cols-3">${CATALOG.map((c) => `<button class="choice ${c.locked ? 'locked' : ''} ${sel.scenario === c.id ? 'on' : ''}" data-scn="${c.id}" ${c.locked ? 'disabled' : ''}><b>${T(c.name)}</b><span>${T(c.tag)}</span></button>`).join('')}</div>
+        <div class="sec">${T('Scenario')}</div>
+        <div class="choices cols-3">${CATALOG.map((c) => `<button class="choice tone ${c.locked ? 'locked' : ''} ${sel.scenario === c.id ? 'on' : ''}" style="--tone:${toneOf(c.id)}" data-scn="${c.id}" ${c.locked ? 'disabled' : ''}><b>${T(c.name)}</b><span>${T(c.tag)}</span></button>`).join('')}</div>
+        <div class="sec">${T('How you play')}</div>
+        <div class="choices cols-2">
+          ${modeBtn(MODE_RAHIM, 'hashem', "Rahim's way", 'No warning')}
+          ${modeBtn(MODE_SCOUT, 'scout', 'Scout mode', 'NASA scout on your side')}
+        </div>
         <div class="plan-grid">
           <div>
-            <div class="label section-label">${T('How you play')}</div>
-            <div class="choices cols-2">
-              <button class="choice ${scout ? 'on' : ''}" data-mode="${MODE_SCOUT}"><b>${T('Scout mode')}</b><span>${T('You farm with the satellite scout')}</span></button>
-              <button class="choice ${!scout ? 'on' : ''}" data-mode="${MODE_RAHIM}"><b>${T("Rahim's way")}</b><span>${T('Watch a farmer with no warning')}</span></button>
-            </div>
-            <div class="label section-label">${T('Rice variety')}</div>
-            <div class="choices cols-2">${['short', 'long'].map((k) => {
-              const vv = cfg.varieties[k];
-              return `<button class="choice variety ${scout && sel.variety === k ? 'on' : ''}" data-var="${k}" ${scout ? '' : 'disabled'}>
-                <b>${T(vv.label)}</b><span>${T(vv.note)}</span>
-                <span class="label" style="margin-top:12px">${T('Days in the field')}</span><span class="days">${num(vv.fieldDays)}</span>
-                ${dry ? '' : `<span class="seedline">${f('{} days from seed, seedbed included', num(vv.fieldDays + BRAND.seedbedDays))}</span>`}
-                <span class="label">${T('Yield potential')}</span><div class="yield-bar"><i style="width:${vv.potential * 100}%"></i></div>
-                <span>${f('{}% of full yield', Math.round(vv.potential * 100))}</span></button>`;
-            }).join('')}</div>
+            <div class="sec">${T('Rice variety')}</div>
+            <div class="choices cols-2">${varBtn('long', 'hashem')}${varBtn('short', 'scout')}</div>
           </div>
           <div>
-            <div class="label section-label">${T('Transplanting date')}</div>
-            <div class="choices">${cfg.transplantOptions.map((o, i) => `<button class="choice ${scout && sel.dateIdx === i ? 'on' : ''}" data-date="${i}" ${scout ? '' : 'disabled'}><b>${T(o[1])}</b><span>${f('ripe about {}', date(ripe(i)))}</span></button>`).join('')}</div>
+            <div class="sec">${T('Transplanting date')}</div>
+            <div class="choices dates">${cfg.transplantOptions.map(dateBtn).join('')}</div>
+            ${risk ? `<div class="risk-key"><u></u>${T(risk.label)}</div>` : ''}
           </div>
         </div>
-        <div class="advice">
-          <b>${T(scout ? 'Your plan' : 'Rahim farms the way his father did')}</b>
-          <p>${esc(plan)}</p>
-          <div class="why">${T('Why it matters')}</div><p>${esc(why)}</p>
-        </div>
+        <p class="plan-note">${esc(note)}</p>
         <div class="panel-foot"><button class="btn" id="plBack">${T('Back')}</button><button class="btn primary big" id="plStart">${T('Start Season')}</button></div>
       </section>`);
     h.querySelectorAll('[data-scn]').forEach((b) => b.onclick = () => { sel.scenario = b.dataset.scn; sel.dateIdx = 1; render(); });
@@ -300,7 +314,7 @@ export function debriefScreen({ session, other, onAgain, onPlan, onReport, onLoo
       }).join('')}</tr>`).join('');
       return `<b style="font-size:13px">${T(title)}</b><table class="plan-table"><tr><th></th>${cols.map((o) => `<th>${T(o[1].replace(/ \(.*/, ''))}</th>`).join('')}</tr>${rows}</table>`;
     };
-    const events = st.events.filter((e) => e.type !== 'watch').slice(-7);
+    const events = st.events.filter((e) => e.type !== 'watch').slice(-5);
     const evColor = { warning: COLORS.bad, loss: COLORS.bad, flood: COLORS.water, stress: COLORS.temp, harvest: COLORS.good };
     const beat = st.yieldPct > other.yieldPct;
     const saved = !rahim && (beat || st.yieldPct > 0.5);
@@ -318,7 +332,7 @@ export function debriefScreen({ session, other, onAgain, onPlan, onReport, onLoo
       <section class="card panel debrief" role="dialog" aria-label="Season debrief">
         <div class="debrief-head">
           <div><h1>${T(st.yieldPct > 0 ? 'The rice is home' : dry ? 'The drought took it all' : 'The water took it all')}</h1>
-          <p class="sub">${T(dry ? 'Same field, same real weather. The difference is whether the warning reached the farmer, and how the season was planned.' : 'Same field, same real rain. The difference is whether the warning reached the farmer, and how the season was planned.')}</p><p class="source">${esc(source)}</p></div>
+          <p class="source">${esc(source)}</p></div>
           <div class="closing">${closing}</div>
         </div>
         <div class="debrief-grid">
@@ -326,7 +340,7 @@ export function debriefScreen({ session, other, onAgain, onPlan, onReport, onLoo
             ${result(rahim ? "Rahim's way (no scout)" : 'You, with the scout', st.yieldPct, COLORS.crop)}
             ${result(rahim ? 'With the scout' : "Rahim's way (no scout)", other.yieldPct, '#8ab4f0')}
             <div class="label section-label">${T('What the data showed')}</div>
-            <ul class="insights">${insights.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+            <ul class="insights">${[insights[0], insights.length > 1 ? insights.at(-1) : null].filter(Boolean).map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
           </div>
           <div>
             <div id="dbChart" style="height:250px"></div>

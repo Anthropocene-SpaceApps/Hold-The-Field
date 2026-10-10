@@ -156,7 +156,7 @@ body:not(.booting) .boot { opacity: 0; pointer-events: none; }
 #satBack { position: absolute; left: 50%; transform: translateX(-50%); bottom: var(--gap); pointer-events: auto; z-index: 1; }
 
 /* toasts (advancements and short notices) */
-.toasts { position: fixed; left: 50%; top: calc(var(--gap) + 84px); transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 40; pointer-events: none; }
+.toasts { position: fixed; left: 50%; top: calc(var(--gap) + 84px); transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 25; pointer-events: none; }
 .toast { display: flex; align-items: center; gap: 12px; width: 340px; max-width: 92vw; padding: 12px 16px 12px 12px; animation: drop .35s ease-out; }
 .toast.out { opacity: 0; transform: translateY(-20px); transition: .4s; }
 .toast .medal { flex: none; width: 40px; height: 40px; border-radius: 50%; background: #ffc857; color: #4a3000; display: grid; place-items: center; font-size: 24px; }
@@ -217,28 +217,43 @@ body:not(.booting) .boot { opacity: 0; pointer-events: none; }
 .choices { display: grid; gap: 14px; }
 .cols-3 { grid-template-columns: repeat(3, 1fr); }
 .cols-2 { grid-template-columns: repeat(2, 1fr); }
-.plan-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 0 16px; }
 .choice { text-align: left; border-radius: 13px; border: 1px solid var(--border); background: rgba(255,255,255,.07); padding: 10px 16px; cursor: pointer; min-height: 54px; display: flex; flex-direction: column; justify-content: center; gap: 3px; transition: border-color .15s, background .15s; }
 .choice:hover { border-color: var(--border-hi); }
-.choice b { font-size: 15px; }
-.choice span { font-size: 12px; color: var(--muted); }
+.choice b { font-size: 17px; }
+.choice span { font-size: 13px; color: var(--muted); }
 .choice.on { border: 2px solid var(--accent); background: rgba(38,72,120,.55); padding: 9px 15px; }
 .choice.on span { color: #b6d8ff; }
 .choice[disabled] { opacity: .45; cursor: not-allowed; }
+.choice.on[disabled] { opacity: .85; cursor: default; }
 .choice.locked { border-style: dashed; cursor: default; }
-.variety { padding: 14px 18px; min-height: 150px; justify-content: flex-start; }
+
+/* plan screen: bigger titles, colour-coded cards (terrain; Hashem's way warm, scout green) */
+.plan .sec { font-size: 18px; font-weight: 800; color: var(--text); margin: 18px 0 9px; letter-spacing: 0; }
+.plan h2::after { display: none; }
+.plan h2 { font-size: 26px; }
+.choice.tone { border-left: 7px solid var(--tone); }
+.choice.tone.on { border-color: var(--tone); border-left-width: 7px; padding: 9px 15px; background: color-mix(in srgb, var(--tone) 26%, #0f1826); }
+.choice.tone.on span { color: var(--text); }
+.choice.tone.locked { opacity: .5; }
+.variety { padding: 12px 16px; min-height: 0; justify-content: flex-start; gap: 4px; }
 .variety b { font-size: 17px; }
-.variety .days { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
-.variety.on .days { color: var(--accent); }
-.variety .seedline { display: block; font-size: 12px; margin: -2px 0 8px; color: var(--muted, #8fa3bc); }
-.variety.on .seedline { color: #b6d8ff; }
+.variety .days { font-size: 26px; font-weight: 800; color: var(--text); margin: 2px 0 0; }
+.variety.on .days { color: var(--tone); }
+.variety .seedline { display: block; font-size: 13px; margin: 0 0 4px; }
 .yield-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.13); margin: 6px 0 4px; }
 .yield-bar i { display: block; height: 100%; border-radius: 4px; background: var(--crop); }
-.advice { margin-top: 14px; border-radius: 13px; background: rgba(255,255,255,.06); padding: 14px 20px; }
-.advice b { font-size: 15px; }
-.advice p { color: var(--muted); margin: 6px 0 0; line-height: 1.5; font-size: 13px; }
-.advice .why { color: var(--accent); font-size: 12px; font-weight: 700; margin-top: 10px; }
-.advice .why + p { color: var(--faint); font-size: 12px; }
+.plan-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 0 18px; }
+.dates { display: grid; gap: 10px; }
+.choice.date { gap: 4px; padding: 9px 14px; }
+.choice.date.on { padding: 8px 13px; }
+.choice.date b { font-size: 16px; }
+.date .ripe { font-size: 14px; font-weight: 700; color: var(--text); }
+.strip { position: relative; height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); margin-top: 3px; }
+.strip i { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--tone); opacity: .85; }
+.strip u { position: absolute; top: -4px; bottom: -4px; width: 2.5px; margin-left: -1px; background: var(--bad); text-decoration: none; }
+.risk-key { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.risk-key u { display: inline-block; width: 2.5px; height: 14px; background: var(--bad); }
+.plan-note { margin: 16px 0 0; font-size: 15px; font-weight: 600; color: var(--muted); }
 
 /* dashboard */
 .dashboard { --w: 1240px; }
@@ -272,9 +287,10 @@ body:not(.booting) .boot { opacity: 0; pointer-events: none; }
 .plan-table td.cell.none { background: rgba(255,255,255,.06); }
 .debrief-head { display: grid; grid-template-columns: 1fr minmax(260px, 430px); gap: 20px; align-items: start; }
 .closing { border-radius: 13px; padding: 10px 16px; background: linear-gradient(90deg, rgba(230,190,75,.14), rgba(77,163,255,.08)); border: 1px solid rgba(230,190,75,.3); }
-.closing .bn { font-family: 'Noto Sans Bengali', var(--font); font-size: 14.5px; font-weight: 600; }
-.closing .en { color: #d6e2f0; font-style: italic; font-size: 12.5px; margin-top: 1px; }
-.closing .now { font-size: 19px; font-weight: 800; color: var(--crop); margin-top: 3px; }
+.closing .mono { line-height: 1.6; margin-bottom: 6px; }
+.closing .bn { font-family: 'Noto Sans Bengali', var(--font); font-size: 15px; font-weight: 600; line-height: 1.75; padding-top: 2px; }
+.closing .en { color: #d6e2f0; font-style: italic; font-size: 13px; line-height: 1.5; margin-top: 2px; }
+.closing .now { font-size: 19px; font-weight: 800; color: var(--crop); line-height: 1.4; margin-top: 4px; }
 .debrief .panel-foot .btn { flex: 1; min-width: 140px; }
 
 /* about, advancements, menu */
