@@ -64,7 +64,6 @@ How to play => কীভাবে খেলবেন
 # ---- video script v2 (Hashem, Nodi, the satellite)
 The flood comes early. So do we. => বন্যা আগে আসে। আমরাও আগে আসি।
 Nodi, Hashem's daughter, remembering 2017 => নদী, হাশেমের মেয়ে, ২০১৭ সালের কথা মনে করে
-After the flood everyone asked: why didn't anyone warn Hashem? Wrong question. He lost his harvest in December, the day he planted a slow rice by his grandfather's calendar. => বন্যার পর সবাই জিজ্ঞেস করেছিল: কেউ হাশেমকে সাবধান করল না কেন? প্রশ্নটাই ভুল। ফসল তিনি হারিয়েছিলেন ডিসেম্বরে, যেদিন দাদার ক্যালেন্ডার মেনে দেরিতে পাকা ধান বুনেছিলেন।
 Go back to December. Choose the seed and the date, read the NASA data, and see if the rice is home before the water comes. => ডিসেম্বরে ফিরে যান। বীজ আর তারিখ বেছে নিন, NASA-র ডেটা পড়ুন, আর দেখুন পানি আসার আগে ধান ঘরে ওঠে কি না।
 Hashem and Nodi are composite characters based on real haor farmers' experiences. The rain is real NASA data. => হাশেম ও নদী কাল্পনিক চরিত্র, হাওরের সত্যিকারের কৃষকদের অভিজ্ঞতা থেকে গড়া। বৃষ্টির হিসাব NASA-র আসল ডেটা।
 Back to December => ডিসেম্বরে ফিরে যান
@@ -81,3 +80,8 @@ RAINFALL, MEGHALAYA HILLS: {} MM IN 72 H => মেঘালয় পাহা�
 DOWNSTREAM: SUNAMGANJ HAOR => ভাটিতে: সুনামগঞ্জের হাওর
 BORO RICE: {} DAYS TO HARVEST => বোরো ধান: কাটার আর {} দিন
 BORO RICE: HARVESTED => বোরো ধান: কাটা হয়েছে
+
+# ---- challenge script (latest)
+You might think Hashem lost his harvest in April. But it was in December, when he chose a rice that needs {} days instead of a {}-day one, which would have been home before the flood had a chance to ruin it. => হয়তো ভাবছেন হাশেম এপ্রিলে ফসল হারিয়েছিলেন। কিন্তু আসলে ডিসেম্বরে, যেদিন তিনি {} দিনের ধান বেছে নিয়েছিলেন, {} দিনের ধানের বদলে, যা বন্যা ক্ষতি করার আগেই ঘরে উঠে যেত।
+{} days from seed, seedbed included => বীজতলাসহ বীজ থেকে {} দিন
+A farm's strategic partner built on real NASA data. The climate raids your farm, and you cannot let it win. Replay a real flash flood or drought, day by day. => খামারের কৌশলগত সঙ্গী, NASA-র আসল ডেটায় গড়া। জলবায়ু আপনার খামারে হানা দেয়, আর আপনি তাকে জিততে দেবেন না। হাওরের সত্যিকারের এক আকস্মিক বন্যা বা খরার মৌসুম, দিনের পর দিন আবার খেলুন।

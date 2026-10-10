@@ -14,7 +14,9 @@ import { withAlpha } from './chart.js';
 const host = () => document.getElementById('screen');
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const T = (s) => esc(t(s));
-// Nodi's lines from the video script (v2): the open, and the close
+// Nodi's opening lines (challenge script F6), then the debrief's callback lines
+const OPEN_BN = ['আমার বয়স তখন নয় কি দশ। বাবা বলত, আকাশের মতিগতি আসমান দেখেই বুঝি।', 'কিন্তু সেই রাতে আকাশ কিছুই বুঝতে দেয়নি।'];
+const OPEN_EN = ['I was nine, maybe ten. My father used to say you can read the sky\'s mood just by looking up.', 'But that night, the sky let no one understand anything.'];
 const NODI_BN = ['আমার বয়স তখন নয়। বাবা বলত, আকাশ কিছু নেওয়ার আগে জানিয়ে দেয়।', 'সেই রাতে আকাশ কিছুই বলেনি।'];
 const NODI_EN = ['I was nine. My father used to say the sky always warns you before it takes.', 'That night, the sky said nothing.'];
 const CLOSE_BN = 'বাবা ঠিকই বলত। আকাশ জানিয়ে দেয়।';
@@ -63,7 +65,7 @@ export function titleScreen({ onPlay, onAbout, onAdvancements, dataState }) {
         <h1>${esc(BRAND.nameParts[0])}<span>${esc(BRAND.nameParts[1])}</span></h1>
         <div class="bar"></div>
         <p class="tagline">${T(BRAND.tagline)}</p>
-        <p class="blurb">${T('A farming game where the climate raids your fields and NASA satellite data is your scout. Replay a real flash flood or drought, day by day.')}</p>
+        <p class="blurb">${T('A farm\'s strategic partner built on real NASA data. The climate raids your farm, and you cannot let it win. Replay a real flash flood or drought, day by day.')}</p>
         <div class="title-menu">
           <button class="btn primary big" id="tPlay">${T('Play')}</button>
           <button class="btn" id="tAbout">${T('Data & Model')}</button>
@@ -121,14 +123,16 @@ export function typeLines(el, lines, { speed = 22, onLine } = {}) {
 }
 
 export function prologueScreen({ season, cfg, onContinue, onBack, onLine }) {
+  const seedbed = BRAND.seedbedDays, vs = (cfg || FLOOD).varieties;
+  const longDays = vs.long.fieldDays + seedbed, shortDays = vs.short.fieldDays + seedbed;   // seed to harvest
   const render = () => {
     const h = mount('prologue', `
       <section class="card panel prologue" role="dialog" aria-label="Prologue">
         <pre class="sat" id="satText" aria-label="Satellite log"></pre>
-        <div class="quote-bn" lang="bn">${NODI_BN[0]}<br>${NODI_BN[1]}</div>
-        <div class="quote-en quote">“${esc(NODI_EN[0])}<br>${esc(NODI_EN[1])}”</div>
+        <div class="quote-bn" lang="bn">${OPEN_BN[0]}<br>${OPEN_BN[1]}</div>
+        <div class="quote-en quote">“${esc(OPEN_EN[0])}<br>${esc(OPEN_EN[1])}”</div>
         <div class="who">${T('Nodi, Hashem\'s daughter, remembering 2017')}</div>
-        <p>${T('After the flood everyone asked: why didn\'t anyone warn Hashem? Wrong question. He lost his harvest in December, the day he planted a slow rice by his grandfather\'s calendar.')}</p>
+        <p>${f('You might think Hashem lost his harvest in April. But it was in December, when he chose a rice that needs {} days instead of a {}-day one, which would have been home before the flood had a chance to ruin it.', num(longDays), num(shortDays))}</p>
         <p>${T('Go back to December. Choose the seed and the date, read the NASA data, and see if the rice is home before the water comes.')}</p>
         <p class="note">${T('Hashem and Nodi are composite characters based on real haor farmers\' experiences. The rain is real NASA data.')}</p>
         <div class="panel-foot"><button class="btn" id="pBack">${T('Back')}</button><button class="btn primary" id="pGo">${T('Back to December')}</button></div>
@@ -178,6 +182,7 @@ export function planScreen({ initial, onStart, onBack }) {
               return `<button class="choice variety ${scout && sel.variety === k ? 'on' : ''}" data-var="${k}" ${scout ? '' : 'disabled'}>
                 <b>${T(vv.label)}</b><span>${T(vv.note)}</span>
                 <span class="label" style="margin-top:12px">${T('Days in the field')}</span><span class="days">${num(vv.fieldDays)}</span>
+                ${dry ? '' : `<span class="seedline">${f('{} days from seed, seedbed included', num(vv.fieldDays + BRAND.seedbedDays))}</span>`}
                 <span class="label">${T('Yield potential')}</span><div class="yield-bar"><i style="width:${vv.potential * 100}%"></i></div>
                 <span>${f('{}% of full yield', Math.round(vv.potential * 100))}</span></button>`;
             }).join('')}</div>

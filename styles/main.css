@@ -230,6 +230,8 @@ body:not(.booting) .boot { opacity: 0; pointer-events: none; }
 .variety b { font-size: 17px; }
 .variety .days { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
 .variety.on .days { color: var(--accent); }
+.variety .seedline { display: block; font-size: 12px; margin: -2px 0 8px; color: var(--muted, #8fa3bc); }
+.variety.on .seedline { color: #b6d8ff; }
 .yield-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.13); margin: 6px 0 4px; }
 .yield-bar i { display: block; height: 100%; border-radius: 4px; background: var(--crop); }
 .advice { margin-top: 14px; border-radius: 13px; background: rgba(255,255,255,.06); padding: 14px 20px; }

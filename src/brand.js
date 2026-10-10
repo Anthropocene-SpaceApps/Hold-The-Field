@@ -12,5 +12,8 @@ export const BRAND = Object.freeze({
   daughter: { en: 'Nodi', bn: 'নদী' },
   team: 'Team Anthropocene',
   event: 'NASA SPACE APPS CHALLENGE 2026  /  FIELD SHIFT',
+  // Days a boro seedling spends in the seedbed before transplanting. Display only (the sim counts days in the field):
+  // the video says a 150-day rice vs a 125-day one, which is 115 / 90 field days plus this.
+  seedbedDays: 35,
   storageKey: 'agrocene',
 });

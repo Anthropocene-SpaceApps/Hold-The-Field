@@ -21,18 +21,19 @@ NASA Space Apps Challenge 2026 · Chattogram, Bangladesh · **Team Anthropocene*
 
 ## The sky always warns you
 
-> *আমার আব্বা বলতেন, আকাশ কিছু নেওয়ার আগে সবসময় জানিয়ে দেয়।*
-> "My father used to say, the sky always warns you before it takes." — Rahim
+> *আমার বয়স তখন নয় কি দশ। বাবা বলত, আকাশের মতিগতি আসমান দেখেই বুঝি।*
+> "I was nine, maybe ten. My father used to say you can read the sky's mood just by looking up." — Nodi, Hashem's daughter
 
-Rahim farms boro rice in the Sunamganj haor. He believed his father's words for forty years. Then, ten days before
-harvest, a flash flood came in one night. NASA satellites had recorded the rain building in the Meghalaya hills
-upstream. **The warning existed. It never reached him.**
+Hashem farms boro rice in the Sunamganj haor. He planted the way his father did: same seed, same week, for forty years.
+Then, weeks before harvest, a flash flood came in one night. NASA satellites had recorded the rain building in the
+Meghalaya hills upstream. **The warning existed. It never reached him.**
 
-In Agrocene you replay his season with that warning in your hands. If you read it in time, the rice is home before the
-water comes. **Now, it can.**
+You might think he lost his harvest in April. He lost it in December, when he chose a rice that needs 150 days instead
+of a 125-day one, which would have been home before the water came. In Agrocene you go back to December with the
+warning in your hands. **This time, someone is listening.**
 
-*Rahim is a composite character based on real haor farmers' experiences. The seasons and the data are real; his story
-stands in for many.*
+*Hashem and Nodi are composite characters based on real haor farmers' experiences. The seasons and the data are real;
+their story stands in for many.*
 
 ## How a season plays
 
@@ -47,7 +48,7 @@ stands in for many.*
    every variety and planting date, with and without the warning, on the same real weather. Save it as a report (text +
    CSV) for a class or an extension officer.
 
-Switch to **Rahim's way** on the plan screen to watch the same season with no warning and no action.
+Switch to **Hashem's way** on the plan screen to watch the same season with no warning and no action.
 
 ## Two scenarios
 
@@ -62,8 +63,8 @@ The Satkhira coast (salinity) is on the plan screen as the next scenario.
 
 | | |
 |---|---|
-| ![Rahim's way: the flood](docs/images/web-flood.jpg) | ![NASA satellite view](docs/images/web-satellite.jpg) |
-| **Rahim's way.** No warning reached him: the water is over the bund. | **NASA satellite view.** The upstream rain layer over the hills, the farm, and the path the water takes. |
+| ![Hashem's way: the flood](docs/images/web-flood.jpg) | ![NASA satellite view](docs/images/web-satellite.jpg) |
+| **Hashem's way.** No warning reached him: the water is over the bund. | **NASA satellite view.** The upstream rain layer over the hills, the farm, and the path the water takes. |
 | ![Debrief](docs/images/web-debrief.jpg) | ![Drought](docs/images/web-drought.jpg) |
 | **Debrief.** Lead time, your result against the farmer with no warning, and every plan on the same weather. | **Barind drought.** Soil below the stress line, the scout's drought warning, the tank for irrigation. |
 | ![Scout dashboard](docs/images/web-dashboard.jpg) | ![In Bengali](docs/images/web-bengali.jpg) |
@@ -111,7 +112,7 @@ Bangla-first, free, no login, and the web build runs on a mid-range phone.
 | 2 | Harvest (from 80 % maturity) |
 | 3 or M | NASA satellite view |
 | 4 or E | Scout dashboard |
-| Click Rahim | Hear what he thinks about the sky right now |
+| Click Hashem | Hear what he thinks about the sky right now |
 | Esc | Menu |
 
 On a phone, the same actions are the buttons at the bottom.
