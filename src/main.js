@@ -2,7 +2,7 @@
 import { BRAND } from './brand.js';
 import { loadLanguages, onLanguage, setLanguage, language, translateDom, t, f } from './i18n.js';
 import { loadSeason, fetchFromPower, clearLive, cached, provenance, CATALOG } from './data/seasons.js';
-import { isDrought } from './sim/config.js';
+import { isDrought, FLOOD } from './sim/config.js';
 import { Session, SPEEDS, MODE_RAHIM } from './game/session.js';
 import * as Adv from './game/advancements.js';
 import { reportText, reportCsv, download } from './game/report.js';
@@ -99,7 +99,7 @@ function openTitle() {
 }
 
 function openPrologue() {
-  screens.prologueScreen({ onContinue: () => openPlan(), onBack: openTitle });
+  screens.prologueScreen({ season: cached('haor-2017'), cfg: FLOOD, onContinue: () => openPlan(), onBack: openTitle, onLine: () => audio.sfx.beep() });
 }
 
 function openPlan(back = openTitle) {

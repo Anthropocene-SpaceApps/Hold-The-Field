@@ -46,8 +46,8 @@ public final class Config {
     public final int startCoins = 100;
 
     // --- Satellite scout (flood): 3-day upstream rain sum (mm) ---
-    public final double watchMm = 120;
-    public final double warningMm = 250;
+    public final double watchMm = 100;     // set on the real NASA POWER 2017 season (see docs/DATA.md)
+    public final double warningMm = 150;
 
     // --- Drought: NASA root-zone wetness plus irrigation, stress accumulates on dry days ---
     public final int irrigationCost = 12;

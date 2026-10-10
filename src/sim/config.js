@@ -22,9 +22,10 @@ const COMMON = {
   maxBundRaises: 2,
   startCoins: 100,
 
-  // Satellite scout (flood): 3-day upstream rain sum (mm)
-  watchMm: 120,
-  warningMm: 250,
+  // Satellite scout (flood): 3-day upstream rain sum (mm). Set on the real NASA POWER 2017 season: WATCH for the
+  // late-February storm that did not flood, and for 30 Mar; FLOOD WARNING on 31 Mar, the day before the water came.
+  watchMm: 100,
+  warningMm: 150,
 
   // Drought: NASA root-zone wetness plus irrigation; stress accumulates on dry days
   irrigationCost: 12,

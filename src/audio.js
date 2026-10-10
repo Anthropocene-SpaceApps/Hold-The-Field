@@ -51,6 +51,7 @@ function tone(freq, start, dur, type = 'sine', vol = 0.18) {
 
 export const sfx = {
   click: () => tone(660, 0, 0.08, 'triangle', 0.08),
+  beep: () => tone(1320, 0, 0.06, 'sine', 0.05),          // the satellite terminal
   place: () => { tone(160, 0, 0.18, 'square', 0.08); tone(120, 0.06, 0.2, 'square', 0.06); },
   water: () => { tone(520, 0, 0.12, 'sine', 0.1); tone(780, 0.05, 0.16, 'sine', 0.07); },
   warning: () => { tone(880, 0, 0.22, 'triangle', 0.16); tone(660, 0.25, 0.22, 'triangle', 0.16); tone(880, 0.5, 0.3, 'triangle', 0.16); },

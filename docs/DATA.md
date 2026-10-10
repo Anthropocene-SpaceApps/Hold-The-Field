@@ -41,7 +41,7 @@ All numbers are in `game/src/main/java/org/anthropocene/htf/sim/Config.java`. Th
 1. **Water level** (metres above the field), each day:
    `level = max(0, level × drain + a × rainUp[t − lagDays] + b × rainFarm[t] − baseLoss)`
 2. **Flood** when `level > bund`. The embankment starts at 0.6 m and can be raised twice by 0.15 m. A crop under water for 4 days is lost.
-3. **Scout warning** from the 3-day upstream rain total: *Watch* ≥ 120 mm, *Flood warning* ≥ 250 mm.
+3. **Scout warning** from the 3-day upstream rain total: *Watch* ≥ 100 mm, *Flood warning* ≥ 150 mm. Set on the real 2017 NASA POWER season: the late-February storm (114 mm) only reaches Watch and does not flood; 30 Mar is Watch, 31 Mar is the Flood warning, and the water crosses the embankment on 1 Apr. The bucket uses `a = 0.0038`, `drain = 0.9` (fitted by `scripts/calibrate.mjs --target 2017-03-30`).
 4. **Crop** matures linearly from the **player-chosen transplanting date** over `fieldDays` (90 days short-duration, 115 days long-duration). Harvest is allowed from 80% maturity.
 5. **Yield** = maturity at harvest × the variety's `potential` (short 85%, long 100%). These potentials are game parameters, not agronomic advice; Yaminur should replace them with sourced figures.
 6. **Planting window analysis** (the debrief): `Engine.planningWindow` replays every variety × transplanting date on the same weather, once with no action and no warning, once acting on the scout.

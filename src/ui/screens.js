@@ -14,8 +14,11 @@ import { withAlpha } from './chart.js';
 const host = () => document.getElementById('screen');
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const T = (s) => esc(t(s));
-const QUOTE_BN = 'আমার আব্বা বলতেন, আকাশ কিছু নেওয়ার আগে সবসময় জানিয়ে দেয়।';
-const QUOTE_EN = 'My father used to say, the sky always warns you before it takes.';
+// Nodi's lines from the video script (v2): the open, and the close
+const NODI_BN = ['আমার বয়স তখন নয়। বাবা বলত, আকাশ কিছু নেওয়ার আগে জানিয়ে দেয়।', 'সেই রাতে আকাশ কিছুই বলেনি।'];
+const NODI_EN = ['I was nine. My father used to say the sky always warns you before it takes.', 'That night, the sky said nothing.'];
+const CLOSE_BN = 'বাবা ঠিকই বলত। আকাশ জানিয়ে দেয়।';
+const CLOSE_EN = 'My father was right. The sky does warn you.';
 const REPO = 'https://github.com/Anthropocene-SpaceApps/Hold-The-Field';
 
 let current = null;          // { name, render }
@@ -82,21 +85,57 @@ export function titleScreen({ onPlay, onAbout, onAdvancements, dataState }) {
 
 // ===================================================================== prologue
 
-export function prologueScreen({ onContinue, onBack }) {
+// The video's cold open, built from the real season: the satellite saw it, nobody was listening.
+// Lines are computed from the data file (NASA POWER), never typed in by hand.
+export function satelliteLines(season, cfg, listening = false) {
+  const days = season.days;
+  const i = days.findIndex((d) => d.date >= '2017-03-31');
+  const at = i < 0 ? days.length - 1 : i;
+  const rain3 = threeDayUpstream(days, at);
+  const ripe = addDays(cfg.defaultTransplant, cfg.varieties.long.fieldDays);
+  const left = Math.max(0, Math.round((Date.parse(ripe) - Date.parse(days[at].date)) / 86400000));
+  const stamp = date(days[at].date).toUpperCase();
+  return [
+    season.sample ? 'SAMPLE DATA · NOT A REAL MEASUREMENT' : 'NASA POWER · DAILY SATELLITE RAINFALL',
+    stamp,
+    f('RAINFALL, MEGHALAYA HILLS: {} MM IN 72 H', Math.round(rain3)),
+    'DOWNSTREAM: SUNAMGANJ HAOR',
+    listening ? 'BORO RICE: HARVESTED' : f('BORO RICE: {} DAYS TO HARVEST', left),
+    listening ? 'SOMEONE IS LISTENING.' : 'NO ONE IS LISTENING.',
+  ];
+}
+
+/** Type lines into an element one by one, like the satellite terminal in the film. */
+export function typeLines(el, lines, { speed = 22, onLine } = {}) {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.textContent = '';
+  if (reduce) { el.textContent = lines.join('\n'); return; }
+  let li = 0, ci = 0;
+  const tick = () => {
+    if (!el.isConnected || li >= lines.length) return;
+    if (ci === 0 && li > 0) el.textContent += '\n';
+    el.textContent += lines[li][ci++] ?? '';
+    if (ci >= lines[li].length) { li++; ci = 0; onLine?.(li); setTimeout(tick, 380); } else setTimeout(tick, speed);
+  };
+  tick();
+}
+
+export function prologueScreen({ season, cfg, onContinue, onBack, onLine }) {
   const render = () => {
     const h = mount('prologue', `
       <section class="card panel prologue" role="dialog" aria-label="Prologue">
-        <div class="label where">${T('Sunamganj haor · April 2017')}</div>
-        <div class="quote-bn" lang="bn">${QUOTE_BN}</div>
-        <div class="quote-en quote">“${esc(QUOTE_EN)}”</div>
-        <div class="who">${T('Rahim, rice farmer')}</div>
-        <p>${T('For forty years he believed it. Then, ten days before harvest, the water came in one night. NASA satellites had recorded the rain building in the hills upstream. The warning existed. It never reached him.')}</p>
-        <p>${T("Replay his season. This time NASA's data is your scout.")}</p>
-        <p class="note">${T("Rahim is a composite character based on real haor farmers' experiences.")}</p>
-        <div class="panel-foot"><button class="btn" id="pBack">${T('Back')}</button><button class="btn primary" id="pGo">${T('Plan the Season')}</button></div>
+        <pre class="sat" id="satText" aria-label="Satellite log"></pre>
+        <div class="quote-bn" lang="bn">${NODI_BN[0]}<br>${NODI_BN[1]}</div>
+        <div class="quote-en quote">“${esc(NODI_EN[0])}<br>${esc(NODI_EN[1])}”</div>
+        <div class="who">${T('Nodi, Hashem\'s daughter, remembering 2017')}</div>
+        <p>${T('After the flood everyone asked: why didn\'t anyone warn Hashem? Wrong question. He lost his harvest in December, the day he planted a slow rice by his grandfather\'s calendar.')}</p>
+        <p>${T('Go back to December. Choose the seed and the date, read the NASA data, and see if the rice is home before the water comes.')}</p>
+        <p class="note">${T('Hashem and Nodi are composite characters based on real haor farmers\' experiences. The rain is real NASA data.')}</p>
+        <div class="panel-foot"><button class="btn" id="pBack">${T('Back')}</button><button class="btn primary" id="pGo">${T('Back to December')}</button></div>
       </section>`);
     h.querySelector('#pGo').onclick = onContinue;
     h.querySelector('#pBack').onclick = onBack;
+    if (season) typeLines(h.querySelector('#satText'), satelliteLines(season, cfg), { onLine });
   };
   current = { name: 'prologue', render };
   render();
@@ -259,11 +298,16 @@ export function debriefScreen({ session, other, onAgain, onPlan, onReport, onLoo
     const events = st.events.filter((e) => e.type !== 'watch').slice(-7);
     const evColor = { warning: COLORS.bad, loss: COLORS.bad, flood: COLORS.water, stress: COLORS.temp, harvest: COLORS.good };
     const beat = st.yieldPct > other.yieldPct;
+    const saved = !rahim && (beat || st.yieldPct > 0.5);
     const closing = rahim
-      ? `<div class="bn" lang="bn">${QUOTE_BN}</div><div class="en quote">“${esc(QUOTE_EN)}”</div><div class="now">${T('The warning existed. It never reached him.')}</div>`
-      : beat || st.yieldPct > 0.5
-        ? `<div class="bn" lang="bn">${QUOTE_BN}</div><div class="en quote">“${esc(QUOTE_EN)}”</div><div class="now">${T('Now, it can.')}</div>`
-        : `<div class="en">${T('The scout spoke. Next season, act on it sooner: raise the bund at WATCH, cut the rice at WARNING.')}</div>`;
+      ? `<div class="mono">${T('NO ONE IS LISTENING.')}</div><div class="bn" lang="bn">${NODI_BN[1]}</div><div class="en quote">“${esc(NODI_EN[1])}”</div>`
+      : saved
+        ? `<div class="mono">${T('SOMEONE IS LISTENING.')}</div><div class="bn" lang="bn">${CLOSE_BN}</div><div class="en quote">“${esc(CLOSE_EN)}”</div><div class="now">${T('This time, someone was listening.')}</div>`
+        : `<div class="mono">${T('DECEMBER AGAIN.')}</div><div class="en">${T('The water still came first. Go back to December: a rice that ripens sooner, then act on the warning.')}</div>`;
+    const p = s.points;
+    const source = f('Data: NASA POWER daily (PRECTOTCORR, T2M_MAX, GWETROOT) · farm {} N {} E{} · {} to {}{}',
+      p.farm.lat.toFixed(2), p.farm.lon.toFixed(2), dry ? '' : f(' · upstream {} N {} E', p.upstream.lat.toFixed(2), p.upstream.lon.toFixed(2)),
+      date(s.days[0].date), date(s.days.at(-1).date), s.sample ? ` · ${t('SAMPLE DATA')}` : '');
 
     const h = mount('debrief', `
       <section class="card panel debrief" role="dialog" aria-label="Season debrief">
@@ -292,9 +336,10 @@ export function debriefScreen({ session, other, onAgain, onPlan, onReport, onLoo
             <div class="small faint">${T('White outline = your plan')}</div>
           </div>
         </div>
+        <p class="source">${esc(source)}</p>
         <div class="panel-foot">
           <button class="btn primary" id="eAgain">${T('Play again')}</button>
-          <button class="btn" id="ePlan">${T('Try another plan')}</button>
+          <button class="btn" id="ePlan">${T('Back to December')}</button>
           <button class="btn" id="eReport">${T('Save report')}</button>
           <button class="btn" id="eLook">${T('Look around')}</button>
           <button class="btn" id="eTitle">${T('Title screen')}</button>

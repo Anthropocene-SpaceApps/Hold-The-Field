@@ -62,9 +62,10 @@ export function num(s) {
 
 /** Translate a fixed string. */
 export function t(s) {
-  if (lang !== 'bn' || s == null) return s;
+  if (s == null) return s;
+  if (lang !== 'bn') return persona(s);
   const hit = table.get(s);
-  if (hit != null) return hit.replaceAll(BRAND_OLD, BRAND.name);
+  if (hit != null) return persona(hit.replaceAll(BRAND_OLD, BRAND.name));
   if (memo.has(s)) return memo.get(s);
   let out = s;
   for (const { re, val } of templates) {
@@ -74,10 +75,16 @@ export function t(s) {
     out = num(val.replace(/\{\}/g, () => t(m[k++] ?? '')));
     break;
   }
+  out = persona(out);
   memo.set(s, out);
   return out;
 }
 const BRAND_OLD = 'Hold the Field';
+
+/** The farmer's name in the web build (the strings and the desktop build say Rahim). */
+export function persona(s) {
+  return String(s).replace(/Rahim/g, BRAND.farmer.en).replace(/রহিম/g, BRAND.farmer.bn);
+}
 
 /** Translate a template with {} placeholders, then fill it: f('Day {} of {}', 3, 90). */
 export function f(template, ...vals) {

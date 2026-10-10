@@ -3,6 +3,7 @@ import { summarize } from '../sim/engine.js';
 import { isDrought } from '../sim/config.js';
 import { BRAND } from '../brand.js';
 import { MODE_RAHIM } from './session.js';
+import { persona } from '../i18n.js';
 
 export function reportText(session, baseline, noWarning, withScout) {
   const st = session.state, cfg = session.cfg, sum = summarize(st), dry = isDrought(cfg);
@@ -29,7 +30,7 @@ export function reportText(session, baseline, noWarning, withScout) {
   lines.push('', `How to read this: it is a learning game built on a simplified model (${dry ? 'one soil layer, one rain point,' : 'one water bucket, one upstream rain point,'}`,
     'linear crop growth). Yield potentials are game parameters, not agronomic advice. Use it to discuss timing and warning,',
     'not to predict a real harvest.', '', `Data: ${session.season.source}. ${BRAND.name} by ${BRAND.team}, NASA Space Apps Challenge 2026.`);
-  return lines.join('\n');
+  return persona(lines.join('\n'));
 }
 
 export function reportCsv(session) {

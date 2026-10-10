@@ -54,8 +54,8 @@ class EngineTest {
     }
 
     @Test void scoutStatusThresholds() {
-        Map<Integer, Double> r = new java.util.HashMap<>(Map.of(10, 50.0, 11, 50.0, 12, 50.0));
-        r.putAll(Map.of(20, 100.0, 21, 100.0, 22, 100.0));
+        Map<Integer, Double> r = new java.util.HashMap<>(Map.of(10, 40.0, 11, 40.0, 12, 40.0));
+        r.putAll(Map.of(20, 60.0, 21, 60.0, 22, 60.0));
         List<Day> d = makeData(r).days;
         assertEquals("calm", Engine.scoutStatus(d, 5, CFG));
         assertEquals("watch", Engine.scoutStatus(d, 12, CFG));

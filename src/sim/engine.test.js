@@ -42,7 +42,7 @@ test('the scout warning fires before the flood', () => {
 });
 
 test('scout status thresholds', () => {
-  const d = makeData({ 10: 50, 11: 50, 12: 50, 20: 100, 21: 100, 22: 100 }).days;
+  const d = makeData({ 10: 40, 11: 40, 12: 40, 20: 60, 21: 60, 22: 60 }).days;
   assert.equal(scoutStatus(d, 5, CFG), 'calm');
   assert.equal(scoutStatus(d, 12, CFG), 'watch');
   assert.equal(scoutStatus(d, 22, CFG), 'warning');
