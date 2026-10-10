@@ -127,7 +127,7 @@ export function createHud({ onSlot, onTime, onSpeed, onMenu, onSound, onSatBack 
   }
 
   function setTime(s) {
-    const paused = s.paused || s.over;
+    const paused = s.paused || s.settled;
     $('timeChip').classList.toggle('paused', paused);
     $('timeIcon').innerHTML = icon(paused ? 'pause' : 'play');
     $('timeText').textContent = paused ? t('Paused') : f('Running  {}', `${SPEEDS[s.speedIdx]}x`);

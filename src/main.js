@@ -207,7 +207,7 @@ function endSession() {
 function togglePause() {
   if (!session || screens.currentScreen()) return;
   audio.unlock();
-  if (session.over) { if (session.endShown) showDebrief(); return; }
+  if (session.settled) { if (session.endShown) showDebrief(); return; }
   session.paused = !session.paused;
   hud.prompt(session);
   hud.setTime(session);
@@ -319,7 +319,7 @@ function loop(ts) {
   if (session) {
     const modal = !!screens.currentScreen();
     if (!modal && session.tick(Math.min(0.5, raw))) afterChange();
-    if (session.over && !session.endShown) {
+    if (session.settled && !session.endShown) {
       session.endTimer += Math.min(0.5, raw);
       if (session.endTimer >= 2.4 && !modal) showDebrief();
     }
@@ -371,7 +371,7 @@ function wireInput() {
     down = null;
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && session && !session.paused && !session.over) { session.paused = true; hud.setTime(session); }
+    if (document.hidden && session && !session.paused && !session.settled) { session.paused = true; hud.setTime(session); }
   });
   onLanguage(() => {
     translateDom();
@@ -393,6 +393,6 @@ const hud = createHud({
 window.__agrocene = {
   get session() { return session; },
   /** Fast-forward n days (testing and screen recording). */
-  advance(n = 1) { for (let k = 0; k < n && session && !session.over; k++) { session.paused = false; session.acc = 1; session.tick(0); afterChange(); } if (session) { session.paused = true; hud.setTime(session); } }, setLanguage, useSlot, togglePause, openDashboard, showDebrief: () => session && showDebrief(), toggleSatellite, CATALOG };
+  advance(n = 1) { for (let k = 0; k < n && session && !session.settled; k++) { session.paused = false; session.acc = 1; session.tick(0); afterChange(); } if (session) { session.paused = true; hud.setTime(session); } }, setLanguage, useSlot, togglePause, openDashboard, showDebrief: () => session && showDebrief(), toggleSatellite, CATALOG };
 
 boot();

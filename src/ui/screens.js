@@ -313,7 +313,7 @@ export function debriefScreen({ session, other, onAgain, onPlan, onReport, onLoo
       <section class="card panel debrief" role="dialog" aria-label="Season debrief">
         <div class="debrief-head">
           <div><h1>${T(st.yieldPct > 0 ? 'The rice is home' : dry ? 'The drought took it all' : 'The water took it all')}</h1>
-          <p class="sub">${T(dry ? 'Same field, same real weather. The difference is whether the warning reached the farmer, and how the season was planned.' : 'Same field, same real rain. The difference is whether the warning reached the farmer, and how the season was planned.')}</p></div>
+          <p class="sub">${T(dry ? 'Same field, same real weather. The difference is whether the warning reached the farmer, and how the season was planned.' : 'Same field, same real rain. The difference is whether the warning reached the farmer, and how the season was planned.')}</p><p class="source">${esc(source)}</p></div>
           <div class="closing">${closing}</div>
         </div>
         <div class="debrief-grid">
@@ -336,7 +336,6 @@ export function debriefScreen({ session, other, onAgain, onPlan, onReport, onLoo
             <div class="small faint">${T('White outline = your plan')}</div>
           </div>
         </div>
-        <p class="source">${esc(source)}</p>
         <div class="panel-foot">
           <button class="btn primary" id="eAgain">${T('Play again')}</button>
           <button class="btn" id="ePlan">${T('Back to December')}</button>

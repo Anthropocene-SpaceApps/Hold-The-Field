@@ -205,7 +205,7 @@ body:not(.booting) .boot { opacity: 0; pointer-events: none; }
 .sat { min-height: 7.6em; margin: 0 0 14px; padding: 14px 16px; border-radius: 12px; background: #04070c; border: 1px solid rgba(255,255,255,.08);
   font: 600 13px/1.45 ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; color: #e8eef6; letter-spacing: .06em; white-space: pre-wrap; }
 .closing .mono, .debrief .mono { font: 700 13px/1.4 ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; letter-spacing: .08em; color: #e8eef6; margin-bottom: 4px; }
-.debrief .source { margin: 14px 0 0; font-size: 11.5px; color: var(--faint); }
+.debrief .source { margin: 6px 0 0; font-size: 11.5px; color: var(--faint); }
 .prologue .quote-bn { font-family: 'Noto Sans Bengali', var(--font); font-size: clamp(22px, 3vw, 30px); line-height: 1.5; margin: 18px 0 6px; font-weight: 600; }
 .prologue .quote-en { font-size: 17px; color: #d6e2f0; font-style: italic; margin: 0 0 6px; }
 .prologue .who { color: var(--crop); font-weight: 600; margin-bottom: 18px; }

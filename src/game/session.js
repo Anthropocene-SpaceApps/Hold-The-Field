@@ -4,6 +4,7 @@ import { configForSeason } from '../sim/config.js';
 
 export const SPEEDS = [1, 2, 4, 8];          // simulated days per real second
 export const MODE_SCOUT = 'scout', MODE_RAHIM = 'rahim';
+const RUN_ON_DAYS = 5;
 
 export class Session {
   constructor(season, mode, variety, plantDate) {
@@ -19,7 +20,11 @@ export class Session {
     this.processed = 0;
     this.endShown = false;
     this.endTimer = 0;
+    this.stopAt = null;         // once the season is decided, the clock runs a few more days so you see what came next
   }
+
+  /** True when the decided season has run on long enough to show the debrief. */
+  get settled() { return this.state.finished || (this.stopAt != null && this.state.i >= this.stopAt); }
 
   get day() { return this.season.days[this.state.i]; }
   get over() { return isOver(this.state); }
@@ -27,12 +32,14 @@ export class Session {
 
   /** Advance the clock; returns true when at least one day passed. */
   tick(dt) {
-    if (this.paused || this.over) return false;
+    if (this.over && this.stopAt == null) this.stopAt = this.state.i + RUN_ON_DAYS;
+    if (this.paused || this.settled) return false;
     this.acc += dt * SPEEDS[this.speedIdx];
     let moved = false;
-    while (this.acc >= 1 && !this.over) {
+    while (this.acc >= 1 && !this.settled) {
       this.acc -= 1;
       this.state = step(this.state, this.season, this.cfg);
+      if (this.over && this.stopAt == null) this.stopAt = this.state.i + RUN_ON_DAYS;
       moved = true;
     }
     return moved;
