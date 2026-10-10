@@ -18,7 +18,7 @@ public final class Config {
         public Variety(String label, int fieldDays, double potential, String note) { this(label, fieldDays, potential, note, 0); }
     }
 
-    public static final Config DEFAULT = flood(0.0011, 0.8);
+    public static final Config DEFAULT = flood(0.0038, 0.9);
     public static final Config DROUGHT = drought();
 
     public final Hazard hazard;

@@ -38,7 +38,7 @@ const COMMON = {
   dryWatchMm: 20, dryWarnMm: 8, soilWatch: 0.76, soilWarn: 0.68,
 };
 
-export function floodConfig(a = 0.0011, drain = 0.8) {
+export function floodConfig(a = 0.0038, drain = 0.9) {
   return Object.freeze({
     ...COMMON,
     hazard: 'flood',
