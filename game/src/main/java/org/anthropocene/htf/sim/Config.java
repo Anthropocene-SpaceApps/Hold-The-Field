@@ -77,13 +77,22 @@ public final class Config {
     }
 
     private static Config drought() {
-        return new Config(Hazard.DROUGHT, 0, 0, LocalDate.parse("2022-07-25"), Map.of(
-                "long", new Variety("Standard Aman", 120, 1.00, "Highest yield, needs steady water", 0.50),
-                "short", new Variety("Drought-tolerant Aman", 100, 0.88, "Lower yield, copes with dry soil", 0.44)),
-                new String[][]{{"2022-07-10", "Early (10 Jul)"}, {"2022-07-25", "Usual (25 Jul)"}, {"2022-08-10", "Late (10 Aug)"}});
+        return new Config(Hazard.DROUGHT, 0, 0, LocalDate.parse("2010-07-25"), Map.of(
+            "long", new Variety("Standard Aman", 120, 1.00, "Highest yield, needs steady water", 0.64),
+            "short", new Variety("Drought-tolerant Aman", 100, 0.88, "Lower yield, copes with dry soil", 0.58)),
+            new String[][]{{"2010-07-10", "Early (10 Jul)"}, {"2010-07-25", "Usual (25 Jul)"}, {"2010-08-10", "Late (10 Aug)"}});
     }
 
     public boolean isDrought() { return hazard == Hazard.DROUGHT; }
+
+    /** Copy with different stress thresholds for the two varieties; used by calibration. */
+    public Config withStress(double standard, double tolerant) {
+        Variety l = varieties.get("long"), s = varieties.get("short");
+        return new Config(Hazard.DROUGHT, 0, 0, defaultTransplant, Map.of(
+                "long", new Variety(l.label(), l.fieldDays(), l.potential(), l.note(), standard),
+                "short", new Variety(s.label(), s.fieldDays(), s.potential(), s.note(), tolerant)),
+                transplantOptions);
+    }
 
     /** The scenario for a hazard name from seasons.json. */
     public static Config forHazard(String hazard) { return "drought".equalsIgnoreCase(hazard) ? DROUGHT : DEFAULT; }

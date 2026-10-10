@@ -42,7 +42,7 @@ Full design, what players learn and what is still missing: [`docs/GAME_DESIGN.md
 
 ## Two scenarios
 
-| | Sunamganj haor, boro 2017 | Barind Tract, Aman 2022 |
+| | Sunamganj haor, boro 2017 | Barind Tract, Aman 2010 |
 |---|---|---|
 | Hazard | Flash flood from rain in the Meghalaya hills | A dry spell while the rice is flowering |
 | The scout reads | Upstream rain (arrives two days later) | Farm rain and root-zone soil wetness |
@@ -119,7 +119,7 @@ Fetch real data from the command line instead of the launcher:
 
 ```bash
 python3 data-pipeline/fetch_power.py --region haor   --start 20161201 --end 20170430 --out data/haor-2017.json
-python3 data-pipeline/fetch_power.py --region barind --start 20220625 --end 20221215 --out data/barind-2022.json
+python3 data-pipeline/fetch_power.py --region barind --start 20100625 --end 20101215 --out data/barind-2010.json
 ```
 
 ## Team Anthropocene

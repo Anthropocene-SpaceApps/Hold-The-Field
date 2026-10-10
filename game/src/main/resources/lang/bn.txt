@@ -29,7 +29,7 @@ SAMPLE DATA => নমুনা ডেটা
 
 # ---- scenarios and varieties
 Sunamganj Haor, Boro 2017 => সুনামগঞ্জ হাওর, বোরো ২০১৭
-Barind Tract, Aman 2022 => বরেন্দ্র অঞ্চল, আমন ২০২২
+Barind Tract, Aman 2010 => বরেন্দ্র অঞ্চল, আমন ২০১০
 Flash flood => আকস্মিক বন্যা
 Drought => খরা
 Long-duration boro => দীর্ঘ মেয়াদি বোরো

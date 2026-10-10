@@ -171,7 +171,7 @@ final class DevCapture {
     /** The drought scenario: a farmer with no warning (the visuals), then the scout with irrigation. */
     private void dry() {
         steps.add(run(() -> {
-            try { game.startSession(new Session(SeasonCatalog.load("barind-2022"), Session.MODE_RAHIM, "long", "Dry Farm", "2022-07-25")); }
+            try { game.startSession(new Session(SeasonCatalog.load("barind-2010"), Session.MODE_RAHIM, "long", "Dry Farm", "2010-07-25")); }
             catch (IOException e) { throw new IllegalStateException(e); }
         }));
         steps.add(wait(4));
@@ -191,7 +191,7 @@ final class DevCapture {
         steps.add(wait(6)); steps.add(shot("d5-end"));
         steps.add(run(() -> {
             game.quitToTitle();
-            try { game.startSession(new Session(SeasonCatalog.load("barind-2022"), Session.MODE_SCOUT, "long", "Scout Farm", "2022-07-25")); }
+            try { game.startSession(new Session(SeasonCatalog.load("barind-2010"), Session.MODE_SCOUT, "long", "Scout Farm", "2010-07-25")); }
             catch (IOException e) { throw new IllegalStateException(e); }
         }));
         steps.add(wait(4));

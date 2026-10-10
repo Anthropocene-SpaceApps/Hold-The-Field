@@ -51,7 +51,7 @@ class I18nTest {
     @Test
     void linesJoinedBySeparatorsAreTranslatedPartByPart() {
         I18n.setLanguage(I18n.BN);
-        String s = I18n.t("Scout mode   |   planted 2022-07-25");
+        String s = I18n.t("Scout mode   |   planted 2010-07-25");
         assertTrue(s.contains("স্কাউট মোড"), s);
         assertTrue(s.contains("রোপণ"), s);
     }

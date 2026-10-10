@@ -20,9 +20,9 @@ python3 data-pipeline/fetch_power.py --region haor --start 20161201 --end 201704
 The drought scenario's file works the same way:
 
 ```bash
-python3 data-pipeline/fetch_power.py --region barind --start 20220625 --end 20221215 --out data/barind-2022.json
+python3 data-pipeline/fetch_power.py --region barind --start 20100625 --end 20101215 --out data/barind-2010.json
 ```
 
-`data/barind-2022.json` in the repo is a labelled SAMPLE made by `make_sample_barind.py` (a monsoon, then a three-week dry
-spell). It is not the weather of 2022. When you fetch the real file, look at the debrief: if that season was not dry,
-pick a different date range for the scenario.
+`data/barind-2010.json` is real NASA POWER data for the calibrated historical scenario. The 2010 window was selected
+after scanning 2005-2025: it had the lowest growing-window soil index and the clearest dry-season signal. Keep the
+scenario file checked in so the game remains deterministic and works offline.
