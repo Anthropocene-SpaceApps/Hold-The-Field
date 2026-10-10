@@ -1,9 +1,10 @@
 // The 3D farm (Three.js, vendored in vendor/three). Reads the sim state, never changes it.
-// Built to stay light: one instanced mesh for all the rice, Lambert/Phong materials, no shadow maps,
-// everything generated in code (no textures or models to download).
+// Built to stay light: one instanced mesh for all the rice, Lambert materials for the land, a sky-lit environment map
+// for the water, soft shadows on desktop only, and every texture and model generated in code (nothing to download).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { noise2, fbm, ridged, rand } from './noise.js';
+import { grassTexture, mudTexture, earthTexture, hillTexture, thatchTexture, plasterTexture, frondTexture, setAnisotropy } from './textures.js';
 
 export const VS = 1.6;                       // vertical scale: 1 m of water or rice = 1.6 world units
 const FW = 48, FD = 32;                      // rice field size (world units), centred on the origin
@@ -25,6 +26,10 @@ export function createWorld(canvas, { mobile = false } = {}) {
   renderer.setPixelRatio(pixelRatio);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
+  const shadows = !mobile;
+  renderer.shadowMap.enabled = shadows;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  setAnisotropy(Math.min(mobile ? 4 : 8, renderer.capabilities.getMaxAnisotropy()));
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(PAL.skyHorizon.clone(), 90, 720);
@@ -42,19 +47,52 @@ export function createWorld(canvas, { mobile = false } = {}) {
   controls.rotateSpeed = 0.6;
 
   // ---------------------------------------------------------------- sky, light
-  const skyUniforms = { top: { value: PAL.skyTop.clone() }, horizon: { value: PAL.skyHorizon.clone() }, flash: { value: 0 } };
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(2000, 24, 12), new THREE.ShaderMaterial({
+  const SUN_DIR = new THREE.Vector3(-0.82, 0.5, -0.28).normalize();      // afternoon sun from the west, raking across the field
+  const skyUniforms = {
+    top: { value: PAL.skyTop.clone() }, horizon: { value: PAL.skyHorizon.clone() }, flash: { value: 0 },
+    sunDir: { value: SUN_DIR.clone() }, sunAmt: { value: 1 },
+  };
+  const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyUniforms,
     vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform float flash; varying vec3 vP;
-      void main(){ float h = clamp(normalize(vP).y, -0.2, 1.0); vec3 c = mix(horizon, top, pow(max(h,0.0), 0.55));
-      gl_FragColor = vec4(c + flash, 1.0); }`,
-  }));
+    fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform float flash; uniform vec3 sunDir; uniform float sunAmt; varying vec3 vP;
+      void main(){
+        vec3 d = normalize(vP);
+        float h = clamp(d.y, -0.2, 1.0);
+        vec3 c = mix(horizon, top, pow(max(h, 0.0), 0.5));
+        c = mix(c, horizon * 1.06, smoothstep(0.12, 0.0, abs(h - 0.02)) * 0.5);    // bright haze band at the horizon
+        float s = max(dot(d, sunDir), 0.0);
+        c += vec3(1.0, 0.92, 0.75) * (pow(s, 900.0) * 3.0 + pow(s, 24.0) * 0.28 + pow(s, 4.0) * 0.08) * sunAmt;
+        gl_FragColor = vec4(c + flash, 1.0);
+      }`,
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(2000, 32, 16), skyMat);
   scene.add(sky);
-  const hemi = new THREE.HemisphereLight('#dfeaf5', '#5d5a3c', 1.25);
-  const sun = new THREE.DirectionalLight('#fff3dc', 2.1);
-  sun.position.set(-80, 120, 60);
-  scene.add(hemi, sun);
+  const hemi = new THREE.HemisphereLight('#dfeaf5', '#5d5a3c', 1.1);
+  const sun = new THREE.DirectionalLight('#fff0d6', 2.3);
+  sun.position.copy(SUN_DIR).multiplyScalar(220);
+  if (shadows) {
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 20, far: 520 });
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.04;
+  }
+  scene.add(hemi, sun, sun.target);
+
+  // the sky, captured once as an environment map, gives the water its reflections (regenerated when the weather turns)
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envScene = new THREE.Scene();
+  envScene.add(new THREE.Mesh(sky.geometry, skyMat));
+  let envRT = null, envStorm = -1, envClock = 0;
+  function updateEnvironment(storm) {
+    const rt = pmrem.fromScene(envScene, 0.02, 1, 3000);
+    envRT?.dispose();
+    envRT = rt;
+    scene.environment = rt.texture;
+    envStorm = storm;
+  }
+  updateEnvironment(0);
 
   // ---------------------------------------------------------------- groups per scenario
   const root = new THREE.Group();
@@ -71,7 +109,7 @@ export function createWorld(canvas, { mobile = false } = {}) {
   scene.add(clouds.group);
 
   // ---------------------------------------------------------------- rice (one instanced mesh)
-  const rice = makeRice(mobile ? 0.78 : 0.56);
+  const rice = makeRice(mobile ? 0.74 : 0.52, mobile ? 5 : 7);
   scene.add(rice.mesh);
 
   // ---------------------------------------------------------------- Rahim, hut, sacks
@@ -84,7 +122,7 @@ export function createWorld(canvas, { mobile = false } = {}) {
   // ---------------------------------------------------------------- display state (eased toward sim targets)
   const view = {
     lakeY: -0.5, fieldWaterY: -0.4, bundH: 0.6 * VS, growth: 0.3, tint: PAL.green.clone(), droop: 0,
-    rainFarm: 0, rainUp: 0, storm: 0, dryness: 0, moisture: 0.6, tankFrac: 0.6, harvested: false,
+    rainFarm: 0, rainUp: 0, storm: 0, dryness: 0, moisture: 0.6, tankFrac: 0.6, harvested: false, ripe: 0,
     soil: PAL.soilWet.clone(), pose: 'idle', overlay: 0, lightning: 0,
   };
   const target = { ...view, tint: view.tint.clone(), soil: view.soil.clone() };
@@ -126,6 +164,7 @@ export function createWorld(canvas, { mobile = false } = {}) {
     // crop look
     const m = st.maturity;
     target.harvested = st.harvested;
+    target.ripe = st.alive && !st.harvested ? Math.max(0, Math.min(1, (m - 0.55) / 0.4)) : 0;
     if (!st.alive) {
       target.tint.copy(dry ? PAL.deadDry : PAL.deadFlood);
       target.growth = 0.25 + 0.55 * Math.min(1, m * 1.4);
@@ -182,7 +221,7 @@ export function createWorld(canvas, { mobile = false } = {}) {
     dt = Math.min(dt, 0.1);
     t += dt;
     const k = 1 - Math.exp(-dt * 2.6);
-    for (const key of ['lakeY', 'fieldWaterY', 'bundH', 'growth', 'droop', 'rainFarm', 'rainUp', 'storm', 'dryness', 'moisture', 'tankFrac']) {
+    for (const key of ['lakeY', 'fieldWaterY', 'bundH', 'growth', 'droop', 'ripe', 'rainFarm', 'rainUp', 'storm', 'dryness', 'moisture', 'tankFrac']) {
       view[key] += (target[key] - view[key]) * k;
     }
     view.tint.lerp(target.tint, k);
@@ -197,16 +236,19 @@ export function createWorld(canvas, { mobile = false } = {}) {
     skyUniforms.horizon.value.copy(hor);
     scene.fog.color.copy(hor);
     scene.fog.near = 70 - view.storm * 30;
-    scene.fog.far = (dry ? 820 : 720) - view.storm * 260 + satT * 2600;
+    scene.fog.far = (dry ? 1100 : 1150) - view.storm * 600 + satT * 2600;
     scene.fog.near = scene.fog.near + satT * 700;
-    hemi.intensity = 1.25 - view.storm * 0.45;
-    sun.intensity = 2.1 - view.storm * 1.6;
+    hemi.intensity = 1.1 - view.storm * 0.35;
+    sun.intensity = 2.3 - view.storm * 1.9;
     // lightning when the hills are drenched
     if (view.rainUp > 0.75 && rand() < dt * 0.25) flashT = 0.35;
     flashT = Math.max(0, flashT - dt);
     const flash = flashT > 0 ? (Math.sin(flashT * 60) > 0 ? 0.35 : 0.05) * (flashT / 0.35) : 0;
     skyUniforms.flash.value = flash;
+    skyUniforms.sunAmt.value = Math.max(0, 1 - view.storm * 1.3);
     hemi.intensity += flash * 3;
+    envClock += dt;
+    if (flash === 0 && envClock > 1.5 && Math.abs(view.storm - envStorm) > 0.08) { envClock = 0; skyUniforms.flash.value = 0; updateEnvironment(view.storm); }
 
     rain.update(dt, camera, controls.target, view.rainFarm * (1 - satT));
     clouds.update(dt, view.storm, view.rainUp, satT);
@@ -276,33 +318,34 @@ export function createWorld(canvas, { mobile = false } = {}) {
       const base = 0.1 + fbm(x * 0.02, z * 0.02, 3) * 0.7;
       return (base * (1 - flat) - 0.1 * flat) * (1 - lake) + (-3.2 + fbm(x * 0.01, z * 0.01, 2)) * lake;
     }, (x, z, y, c) => {
-      const g = 0.5 + 0.5 * noise2(x * 0.05, z * 0.05);
-      c.setRGB(0.36 + g * 0.08, 0.52 + g * 0.1, 0.22 + g * 0.05);
-      if (y < -0.6) c.setRGB(0.32, 0.36, 0.3);
+      const g = 0.5 + 0.5 * noise2(x * 0.05, z * 0.05), dryPatch = fbm(x * 0.008 + 3, z * 0.008, 3);
+      c.setRGB(0.38 + g * 0.07 + dryPatch * 0.16, 0.47 + g * 0.08 + dryPatch * 0.06, 0.25 + g * 0.04);   // olive grass, drier patches
+      if (y < -0.6) c.setRGB(0.3, 0.33, 0.27);
     });
     group.add(ground);
     // the Meghalaya hills upstream
-    const hills = terrain(1800, 520, mobile ? 120 : 180, (x, z) => {
+    const hills = terrain(1800, 520, mobile ? 140 : 240, (x, z) => {
       const rise = smooth(130, -60, z);                  // local z: +260 is the near (south) edge
       const r = ridged(x * 0.006, z * 0.008, 5);
       return (r * 150 + fbm(x * 0.02, z * 0.02, 3) * 18) * rise - 6;
     }, (x, z, y, c) => {
-      const h = Math.max(0, Math.min(1, y / 140));
-      c.setRGB(0.3 + h * 0.25, 0.42 + h * 0.18, 0.28 + h * 0.2);
-    });
+      const h = Math.max(0, Math.min(1, y / 140)), n = noise2(x * 0.03, z * 0.03);
+      c.setRGB(0.24 + h * 0.22 + n * 0.05, 0.36 + h * 0.14 + n * 0.06, 0.22 + h * 0.16);     // forested slopes, paler ridges
+    }, hillTexture([60, 18]));
     hills.position.set(0, 0, -470);
     group.add(hills);
     // lake water and field water
-    const lake = water(1700, 380, mobile ? 40 : 70, mobile ? 10 : 16);
+    const lake = water(1700, 380, mobile ? 50 : 90, mobile ? 12 : 22, '#2b5b72', 0.94);
     lake.mesh.position.set(0, -0.5, LAKE_EDGE - 190);
     group.add(lake.mesh);
     const fieldWater = water(FW, FD, 16, 10, '#5b7880', 0.78);
     fieldWater.mesh.position.set(0, -0.4, 0);
     group.add(fieldWater.mesh);
     // paddy soil, bund, neighbours, hut, trees, boat
-    const soil = new THREE.Mesh(new THREE.PlaneGeometry(FW, FD), new THREE.MeshLambertMaterial({ color: PAL.soilWet }));
+    const soil = new THREE.Mesh(new THREE.PlaneGeometry(FW, FD), new THREE.MeshLambertMaterial({ color: PAL.soilWet, map: mudTexture([6, 4]) }));
     soil.rotation.x = -Math.PI / 2;
     soil.position.y = 0.01;
+    soil.receiveShadow = true;
     group.add(soil);
     const bund = makeBund(1.7, false);
     group.add(bund.group);
@@ -359,12 +402,14 @@ export function createWorld(canvas, { mobile = false } = {}) {
       return (0.1 + fbm(x * 0.015, z * 0.015, 3) * 1.4) * (1 - flat) - 0.1 * flat;
     }, (x, z, y, c) => {
       const g = 0.5 + 0.5 * noise2(x * 0.04, z * 0.04);
-      c.setRGB(0.56 + g * 0.1, 0.52 + g * 0.08, 0.3 + g * 0.05);
+      const dryPatch = fbm(x * 0.008 + 3, z * 0.008, 3);
+      c.setRGB(0.54 + g * 0.08 + dryPatch * 0.08, 0.5 + g * 0.07, 0.3 + g * 0.05);
     });
     group.add(ground);
-    const soil = new THREE.Mesh(new THREE.PlaneGeometry(FW, FD), new THREE.MeshLambertMaterial({ color: PAL.soilWet }));
+    const soil = new THREE.Mesh(new THREE.PlaneGeometry(FW, FD), new THREE.MeshLambertMaterial({ color: PAL.soilWet, map: mudTexture([6, 4]) }));
     soil.rotation.x = -Math.PI / 2;
     soil.position.y = 0.01;
+    soil.receiveShadow = true;
     group.add(soil);
     const cracks = new THREE.Mesh(new THREE.PlaneGeometry(FW, FD), new THREE.MeshBasicMaterial({ map: crackTexture(), transparent: true, opacity: 0, depthWrite: false, color: '#3a2a1c' }));
     cracks.rotation.x = -Math.PI / 2;
@@ -410,7 +455,7 @@ export function createWorld(canvas, { mobile = false } = {}) {
 
   // ================================================================= builders
 
-  function terrain(w, d, seg, height, color) {
+  function terrain(w, d, seg, height, color, map = grassTexture([w / 9, d / 9])) {
     const g = new THREE.PlaneGeometry(w, d, seg, Math.max(4, Math.round(seg * d / w)));
     g.rotateX(-Math.PI / 2);
     const pos = g.attributes.position, cols = new Float32Array(pos.count * 3), c = new THREE.Color();
@@ -424,14 +469,16 @@ export function createWorld(canvas, { mobile = false } = {}) {
     }
     g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
     g.computeVertexNormals();
-    return new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
+    const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, map }));
+    mesh.receiveShadow = true;
+    return mesh;
   }
 
   function water(w, d, sx, sz, color = '#3d6d8c', opacity = 0.9) {
     const g = new THREE.PlaneGeometry(w, d, sx, sz);
     g.rotateX(-Math.PI / 2);
     const base = Float32Array.from(g.attributes.position.array);
-    const mat = new THREE.MeshPhongMaterial({ color, specular: '#bcd6e6', shininess: 70, transparent: true, opacity, depthWrite: opacity > 0.85 });
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.32, metalness: 0.0, envMapIntensity: 0.38, transparent: true, opacity, depthWrite: opacity > 0.85 });
     const mesh = new THREE.Mesh(g, mat);
     let last = -1;
     return {
@@ -452,8 +499,8 @@ export function createWorld(canvas, { mobile = false } = {}) {
 
   function makeBund(width, low) {
     const group = new THREE.Group();
-    const mat = new THREE.MeshLambertMaterial({ color: low ? '#9a7c55' : '#6f5a3e' });
-    const topMat = new THREE.MeshLambertMaterial({ color: low ? '#8f9a52' : '#6d8a3c' });
+    const mat = new THREE.MeshLambertMaterial({ color: low ? '#9a7c55' : '#7a6344', map: earthTexture([12, 1]) });
+    const topMat = new THREE.MeshLambertMaterial({ color: low ? '#8f9a52' : '#6d8a3c', map: grassTexture([10, 1]) });
     const sides = [[0, -FD / 2, FW + width * 2, 0], [0, FD / 2, FW + width * 2, 0], [-FW / 2, 0, FD, Math.PI / 2], [FW / 2, 0, FD, Math.PI / 2]];
     const meshes = [];
     for (const [x, z, len, rot] of sides) {
@@ -465,6 +512,7 @@ export function createWorld(canvas, { mobile = false } = {}) {
       const m = new THREE.Mesh(g, [mat, mat, topMat, mat, mat, mat]);
       m.position.set(x, 0, z);
       m.rotation.y = rot;
+      m.castShadow = m.receiveShadow = true;
       group.add(m);
       meshes.push(m);
     }
@@ -478,6 +526,7 @@ export function createWorld(canvas, { mobile = false } = {}) {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ color, map: tex }));
       m.rotation.x = -Math.PI / 2;
       m.position.set(x, 0.0, z);
+      m.receiveShadow = true;
       group.add(m);
       out.push(m);
     }
@@ -486,47 +535,135 @@ export function createWorld(canvas, { mobile = false } = {}) {
 
   function makeHut(x, z) {
     const g = new THREE.Group();
-    const walls = new THREE.Mesh(new THREE.BoxGeometry(6, 2.8, 4.6), new THREE.MeshLambertMaterial({ color: '#b48a5e' }));
-    walls.position.y = 1.4;
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(5, 2.6, 4), new THREE.MeshLambertMaterial({ color: '#c9a65a', flatShading: true }));
-    roof.position.y = 4.1;
-    roof.rotation.y = Math.PI / 4;
-    roof.scale.set(1.15, 1, 0.9);
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.9), new THREE.MeshLambertMaterial({ color: '#4a3424' }));
-    door.position.set(-3.01, 0.95, 0);
+    const wallM = new THREE.MeshLambertMaterial({ color: '#c49a6a', map: plasterTexture([2, 1]) });
+    const thatchM = new THREE.MeshLambertMaterial({ color: '#d8b46a', map: thatchTexture([3, 1.5]), side: THREE.DoubleSide });
+    const woodM = new THREE.MeshLambertMaterial({ color: '#6b4a2e' });
+    const plinth = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.5, 6.6), new THREE.MeshLambertMaterial({ color: '#9b7a55', map: earthTexture([3, 2]) }));
+    plinth.position.y = 0.25;
+    const walls = new THREE.Mesh(new THREE.BoxGeometry(6, 2.6, 4.4), wallM);
+    walls.position.y = 1.8;
+    // gabled thatch roof: two sloping slabs and mud gables, ridge along x
+    const pitch = 0.62, half = 3.2, slabW = 8.2;
+    for (const side of [-1, 1]) {
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(slabW, 0.28, half * 1.08), thatchM);
+      slab.position.set(0, 3.1 + Math.sin(pitch) * half / 2, side * Math.cos(pitch) * half / 2);
+      slab.rotation.x = side * pitch;
+      slab.castShadow = true;
+      g.add(slab);
+    }
+    const gable = new THREE.Shape();
+    gable.moveTo(-2.2, 0); gable.lineTo(2.2, 0); gable.lineTo(0, 1.75); gable.closePath();
+    for (const side of [-1, 1]) {
+      const gm = new THREE.Mesh(new THREE.ShapeGeometry(gable), wallM);
+      gm.position.set(side * 3.0, 3.1, 0);
+      gm.rotation.y = side * Math.PI / 2;
+      g.add(gm);
+    }
+    // veranda posts, door, window
+    for (const pz of [-2.9, 2.9]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 2.9, 8), woodM);
+      post.position.set(-3.7, 1.95, pz);
+      post.castShadow = true;
+      g.add(post);
+    }
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.9), new THREE.MeshLambertMaterial({ color: '#3d2a1b' }));
+    door.position.set(-3.01, 1.45, 0.6);
     door.rotation.y = -Math.PI / 2;
-    const plinth = new THREE.Mesh(new THREE.BoxGeometry(7, 0.4, 5.6), new THREE.MeshLambertMaterial({ color: '#8d6c4a' }));
-    plinth.position.y = 0.2;
-    g.add(plinth, walls, roof, door);
-    for (const [hx, hz, s] of [[5, -3, 1], [6.5, 1.5, 0.8]]) {
-      const hay = new THREE.Mesh(new THREE.ConeGeometry(1.3 * s, 2.6 * s, 10), new THREE.MeshLambertMaterial({ color: '#d4b25c' }));
-      hay.position.set(hx, 1.3 * s, hz);
-      g.add(hay);
+    const win = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.6), new THREE.MeshLambertMaterial({ color: '#2b2219' }));
+    win.position.set(-3.01, 2.0, -1.3);
+    win.rotation.y = -Math.PI / 2;
+    walls.castShadow = walls.receiveShadow = plinth.receiveShadow = true;
+    g.add(plinth, walls, door, win);
+    // haystacks (smooth, with a thatch grain)
+    const hayM = new THREE.MeshLambertMaterial({ color: '#e0bf6a', map: thatchTexture([2, 1]) });
+    for (const [hx, hz, sc] of [[6, -3, 1], [7.4, 1.5, 0.8]]) {
+      const pts = [];
+      for (let k = 0; k <= 10; k++) { const v = k / 10; pts.push(new THREE.Vector2(1.5 * Math.sin(Math.acos(v * 0.98)) * (1 - v * 0.15), v * 3.0)); }
+      const hay = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), hayM);
+      hay.position.set(hx, 0, hz);
+      hay.scale.setScalar(sc);
+      hay.castShadow = true;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 6), woodM);
+      pole.position.set(hx, 3.0 * sc + 0.3, hz);
+      g.add(hay, pole);
     }
     g.position.set(x, 0, z);
     return g;
   }
 
   function trees(group, n, ok, dry = false) {
-    const trunkG = new THREE.CylinderGeometry(0.25, 0.4, 1, 6);
+    // broadleaf trees: a lumpy, smooth canopy shaded darker underneath; palms: a curved trunk and drooping fronds
+    const crownG = new THREE.IcosahedronGeometry(1, mobile ? 2 : 3);
+    const cp = crownG.attributes.position, cc = new Float32Array(cp.count * 3), v = new THREE.Vector3();
+    for (let i = 0; i < cp.count; i++) {
+      v.fromBufferAttribute(cp, i);
+      const bump = 1 + (fbm(v.x * 1.6 + 7, v.y * 1.6 + v.z * 1.3, 3) - 0.5) * 0.55;
+      v.multiplyScalar(bump);
+      v.y *= 0.78;
+      cp.setXYZ(i, v.x, v.y, v.z);
+      const shade = 0.55 + 0.45 * Math.max(0, Math.min(1, (v.y + 0.8) / 1.5));    // fake ambient occlusion
+      cc.set([shade, shade, shade], i * 3);
+    }
+    crownG.setAttribute('color', new THREE.BufferAttribute(cc, 3));
+    crownG.computeVertexNormals();
+    const trunkG = new THREE.CylinderGeometry(0.22, 0.42, 1, 8);
     trunkG.translate(0, 0.5, 0);
-    const crownG = new THREE.IcosahedronGeometry(1, 0);
+    const palmTrunkG = new THREE.CylinderGeometry(0.2, 0.3, 1, 8, 6);
+    palmTrunkG.translate(0, 0.5, 0);
+    const pt = palmTrunkG.attributes.position;
+    for (let i = 0; i < pt.count; i++) pt.setX(i, pt.getX(i) + Math.pow(pt.getY(i), 2) * 0.12);   // gentle lean
+    palmTrunkG.computeVertexNormals();
+    const frondG = palmCrown();
     const trunkM = new THREE.MeshLambertMaterial({ color: '#5a4430' });
-    const crownM = new THREE.MeshLambertMaterial({ color: dry ? '#6f8a3a' : '#3f7a35', flatShading: true });
-    const trunks = new THREE.InstancedMesh(trunkG, trunkM, n), crowns = new THREE.InstancedMesh(crownG, crownM, n);
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
-    let i = 0, guard = 0;
-    while (i < n && guard++ < 4000) {
+    const crownM = new THREE.MeshLambertMaterial({ color: dry ? '#6f8a3a' : '#3d7433', vertexColors: true });
+    const frondM = new THREE.MeshLambertMaterial({ color: dry ? '#7c9440' : '#4f8a3a', alphaMap: frondTexture(), alphaTest: 0.5, side: THREE.DoubleSide });
+    const nPalm = Math.round(n * 0.4), nTree = n - nPalm;
+    const trunks = new THREE.InstancedMesh(trunkG, trunkM, nTree), crowns = new THREE.InstancedMesh(crownG, crownM, nTree);
+    const pTrunks = new THREE.InstancedMesh(palmTrunkG, trunkM, nPalm), fronds = new THREE.InstancedMesh(frondG, frondM, nPalm);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), c = new THREE.Color();
+    let i = 0, j = 0, guard = 0;
+    while ((i < nTree || j < nPalm) && guard++ < 6000) {
       const x = (rand() - 0.5) * 520, z = (rand() - 0.5) * 420 + 30;
-      if (!ok(x, z)) continue;
-      const h = 5 + rand() * 6;
-      trunks.setMatrixAt(i, m.compose(p.set(x, 0, z), q.identity(), s.set(1, h, 1)));
-      const r = 2.2 + rand() * 2.2;
-      crowns.setMatrixAt(i, m.compose(p.set(x, h + r * 0.4, z), q.setFromEuler(new THREE.Euler(0, rand() * 6, 0)), s.set(r, r * 0.85, r)));
-      i++;
+      if (!ok(x, z) || Math.hypot(x - 44, z - 52) < 26 || Math.hypot(x - 60, z - 70) < 22) continue;   // keep the camera spots clear
+      const yaw = rand() * 6.28;
+      q.setFromEuler(new THREE.Euler(0, yaw, 0));
+      const near = Math.hypot(x - 36, z - 9) < 60;          // palms cluster around the homestead and the shore
+      if (j < nPalm && (near || rand() < 0.3)) {
+        const h = 7 + rand() * 5;
+        pTrunks.setMatrixAt(j, m.compose(p.set(x, 0, z), q, sc.set(1, h, 1)));
+        const top = new THREE.Vector3(0.12, h, 0).applyQuaternion(q);       // follow the trunk's lean
+        fronds.setMatrixAt(j, m.compose(p.set(x + top.x, h - 0.1, z + top.z), q, sc.setScalar(0.9 + rand() * 0.3)));
+        j++;
+      } else if (i < nTree) {
+        const h = 4 + rand() * 4, r = 2.6 + rand() * 2.4;
+        trunks.setMatrixAt(i, m.compose(p.set(x, 0, z), q, sc.set(1, h + r * 0.3, 1)));
+        crowns.setMatrixAt(i, m.compose(p.set(x, h + r * 0.55, z), q, sc.set(r, r, r)));
+        crowns.setColorAt(i, c.setHSL(0.27 + rand() * 0.06, 0.45 + rand() * 0.15, 0.42 + rand() * 0.12));
+        i++;
+      }
     }
     trunks.count = crowns.count = i;
-    group.add(trunks, crowns);
+    pTrunks.count = fronds.count = j;
+    for (const im of [trunks, crowns, pTrunks, fronds]) { im.castShadow = true; im.receiveShadow = true; }
+    group.add(trunks, crowns, pTrunks, fronds);
+  }
+
+  /** Eight drooping fronds as one geometry (instanced per palm). */
+  function palmCrown() {
+    const parts = [];
+    for (let k = 0; k < 8; k++) {
+      const g = new THREE.PlaneGeometry(1.4, 4.2, 1, 6);
+      g.translate(0, 2.1, 0);
+      const pp = g.attributes.position;
+      for (let i = 0; i < pp.count; i++) {                       // lay the frond out and let it arch down
+        const y = pp.getY(i), t = y / 4.2;
+        pp.setXYZ(i, pp.getX(i), Math.sin(t * Math.PI * 0.55) * 1.3 - t * t * 2.2, y);
+      }
+      g.rotateY((k / 8) * Math.PI * 2 + rand() * 0.3);
+      g.rotateX(0);
+      parts.push(g);
+    }
+    return mergeGeometries(parts);
   }
 
   function makeBoat() {
@@ -598,34 +735,47 @@ export function createWorld(canvas, { mobile = false } = {}) {
 
 // ===================================================================== reusable pieces
 
-function makeRice(spacing) {
-  // one clump = 5 blades; height 1 (scaled in the shader by maturity), coloured darker at the base
-  const pos = [], col = [];
-  for (let b = 0; b < 5; b++) {
-    const a = (b / 5) * Math.PI * 2 + rand() * 0.6, lean = 0.12 + rand() * 0.18, w = 0.035 + rand() * 0.02, h = 0.8 + rand() * 0.3;
+function makeRice(spacing, blades = 7) {
+  // one clump = curved, tapering blades (two segments each). aTip marks the top of each blade, where the
+  // grain heads ripen to gold and nod over as the season goes on.
+  const pos = [], col = [], tip = [];
+  for (let b = 0; b < blades; b++) {
+    const a = (b / blades) * Math.PI * 2 + rand() * 0.6, lean = 0.1 + rand() * 0.22, w = 0.03 + rand() * 0.02, h = 0.75 + rand() * 0.35;
     const dx = Math.cos(a), dz = Math.sin(a), px = -dz * w, pz = dx * w;
-    const tip = [dx * lean, h, dz * lean];
-    pos.push(px, 0, pz, -px, 0, -pz, ...tip);
-    col.push(0.55, 0.6, 0.55, 0.55, 0.6, 0.55, 1.15, 1.12, 1.0);
+    const mid = [dx * lean * 0.35, h * 0.55, dz * lean * 0.35], top = [dx * lean, h, dz * lean];
+    // lower quad (base -> mid), upper triangle (mid -> tip)
+    const b0 = [px, 0, pz], b1 = [-px, 0, -pz], m0 = [mid[0] + px * 0.7, mid[1], mid[2] + pz * 0.7], m1 = [mid[0] - px * 0.7, mid[1], mid[2] - pz * 0.7];
+    for (const v of [b0, b1, m0, m0, b1, m1, m0, m1, top]) pos.push(...v);
+    const shade = (y) => 0.62 + 0.5 * (y / h);
+    for (const v of [b0, b1, m0, m0, b1, m1, m0, m1, top]) { const sh = shade(v[1]); col.push(sh, sh * 1.02, sh * 0.95); tip.push(Math.max(0, (v[1] / h - 0.3) / 0.7)); }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('aTip', new THREE.Float32BufferAttribute(tip, 1));
   g.computeVertexNormals();
-  const uniforms = { uTime: { value: 0 }, uHeight: { value: 0.5 }, uWind: { value: 1 }, uDroop: { value: 0 } };
+  const uniforms = { uTime: { value: 0 }, uHeight: { value: 0.5 }, uWind: { value: 1 }, uDroop: { value: 0 }, uRipe: { value: 0 }, uRipeColor: { value: new THREE.Color('#f0c95a') } };
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, color: PAL.green.clone() });
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uniforms);
-    sh.vertexShader = 'uniform float uTime; uniform float uHeight; uniform float uWind; uniform float uDroop;\n' + sh.vertexShader.replace(
+    sh.vertexShader = 'uniform float uTime; uniform float uHeight; uniform float uWind; uniform float uDroop; uniform float uRipe;\nattribute float aTip; varying float vTip;\n' + sh.vertexShader.replace(
       '#include <begin_vertex>',
       `#include <begin_vertex>
+       vTip = aTip;
        float hh = position.y;
        transformed.y *= uHeight;
        vec2 ip = vec2(instanceMatrix[3].x, instanceMatrix[3].z);
+       float gust = sin(uTime * 0.6 + ip.x * 0.05) * 0.5 + 0.5;
        float sway = sin(uTime * 1.6 + ip.x * 0.21 + ip.y * 0.13) + 0.5 * sin(uTime * 2.7 + ip.x * 0.5);
-       transformed.x += sway * 0.07 * uWind * hh * uHeight;
-       transformed.xz += normalize(position.xz + 0.0001) * uDroop * hh * hh * 0.55 * uHeight;
-       transformed.y -= uDroop * hh * hh * 0.35 * uHeight;`,
+       transformed.x += sway * (0.04 + 0.06 * gust) * uWind * hh * uHeight;
+       float nod = uDroop + uRipe * 0.45 * aTip;
+       transformed.xz += normalize(position.xz + 0.0001) * nod * hh * hh * 0.55 * uHeight;
+       transformed.y -= nod * hh * hh * 0.3 * uHeight;`,
+    );
+    sh.fragmentShader = 'uniform float uRipe; uniform vec3 uRipeColor; varying float vTip;\n' + sh.fragmentShader.replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+       diffuseColor.rgb = mix(diffuseColor.rgb, uRipeColor * (0.75 + 0.35 * vTip), clamp(vTip * uRipe, 0.0, 1.0));`,
     );
   };
   const nx = Math.floor(FW / spacing), nz = Math.floor(FD / spacing);
@@ -635,13 +785,15 @@ function makeRice(spacing) {
   for (let ix = 0; ix < nx; ix++) for (let iz = 0; iz < nz; iz++) {
     const x = -FW / 2 + spacing * (ix + 0.5) + (rand() - 0.5) * spacing * 0.25;
     const z = -FD / 2 + spacing * (iz + 0.5) + (rand() - 0.5) * spacing * 0.5;
-    const sc = 0.85 + rand() * 0.3;
+    const patch = 0.9 + 0.2 * noise2(x * 0.15, z * 0.15);          // the field grows in patches, not as a carpet
+    const sc = (0.85 + rand() * 0.3) * patch;
     mesh.setMatrixAt(i, m.compose(p.set(x, 0, z), q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * 6.28), s.set(sc, sc * VS, sc)));
-    const v = 0.86 + rand() * 0.22;
-    mesh.setColorAt(i, c.setRGB(v, v * (0.95 + rand() * 0.1), v));
+    const v = (0.84 + rand() * 0.22) * (0.94 + 0.12 * noise2(x * 0.3 + 9, z * 0.3));
+    mesh.setColorAt(i, c.setRGB(v, v * (0.95 + rand() * 0.1), v * 0.96));
     i++;
   }
   mesh.frustumCulled = false;
+  mesh.receiveShadow = true;
   return {
     mesh,
     update(time, v, wind) {
@@ -649,6 +801,7 @@ function makeRice(spacing) {
       uniforms.uHeight.value = v.growth;
       uniforms.uWind.value = wind;
       uniforms.uDroop.value = v.droop;
+      uniforms.uRipe.value = v.ripe ?? 0;
       mat.color.copy(v.tint);
     },
   };
@@ -663,13 +816,13 @@ function makeRahim() {
   const beard = new THREE.MeshLambertMaterial({ color: '#5a5650' });
   const S = 1.3;
   const body = new THREE.Group();
-  const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.95, 10), lungi);
+  const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.95, 18), lungi);
   legs.position.y = 0.5;
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.62, 10), shirt);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.25, 0.62, 18), shirt);
   torso.position.y = 1.28;
   const head = new THREE.Group();
   head.position.y = 1.78;
-  const face = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), skin);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.15, 20, 16), skin);
   face.scale.set(0.95, 1.12, 1);
   const hat = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), cap);
   hat.position.y = 0.05;
@@ -680,7 +833,7 @@ function makeRahim() {
   const arm = (side) => {
     const g = new THREE.Group();
     g.position.set(side * 0.28, 1.55, 0);
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.62, 8), shirt);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.62, 12), shirt);
     upper.position.y = -0.31;
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), skin);
     hand.position.y = -0.65;
@@ -690,6 +843,7 @@ function makeRahim() {
   const armL = arm(-1), armR = arm(1);
   body.add(legs, torso, head, armL, armR);
   group.add(body);
+  body.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   group.scale.setScalar(S);
   const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.6, 8), new THREE.MeshBasicMaterial({ visible: false }));
   hit.position.y = 1.2;
@@ -730,6 +884,7 @@ function makeSacks() {
     const m = new THREE.Mesh(g, mat);
     const row = Math.floor(i / 5), col = i % 5;
     m.position.set(FW / 2 + 7 + col * 1.05 + (row % 2) * 0.5, 0.45 + row * 0.75, 16 + row * 0.15);
+    m.castShadow = true;
     m.visible = false;
     group.add(m);
     all.push(m);
@@ -929,4 +1084,19 @@ function flatMask(x, z, plots) {
 
 function nearPlot(x, z, plots) {
   return plots.some(([px, pz, w, d]) => Math.abs(x - px) < w / 2 + 6 && Math.abs(z - pz) < d / 2 + 6);
+}
+
+/** Merge simple geometries (position, normal, uv) into one. */
+function mergeGeometries(list) {
+  const out = { position: [], normal: [], uv: [] };
+  for (const g0 of list) {
+    const g = g0.index ? g0.toNonIndexed() : g0;
+    g.computeVertexNormals();
+    for (const k of Object.keys(out)) if (g.attributes[k]) out[k].push(...g.attributes[k].array);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(out.position, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(out.normal, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(out.uv, 2));
+  return g;
 }
