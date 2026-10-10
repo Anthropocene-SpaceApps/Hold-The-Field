@@ -85,6 +85,15 @@ public final class Config {
 
     public boolean isDrought() { return hazard == Hazard.DROUGHT; }
 
+    /** Copy with different stress thresholds for the two varieties; used by calibration. */
+    public Config withStress(double standard, double tolerant) {
+        Variety l = varieties.get("long"), s = varieties.get("short");
+        return new Config(Hazard.DROUGHT, 0, 0, defaultTransplant, Map.of(
+                "long", new Variety(l.label(), l.fieldDays(), l.potential(), l.note(), standard),
+                "short", new Variety(s.label(), s.fieldDays(), s.potential(), s.note(), tolerant)),
+                transplantOptions);
+    }
+
     /** The scenario for a hazard name from seasons.json. */
     public static Config forHazard(String hazard) { return "drought".equalsIgnoreCase(hazard) ? DROUGHT : DEFAULT; }
 
